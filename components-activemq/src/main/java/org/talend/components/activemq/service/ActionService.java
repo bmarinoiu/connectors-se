@@ -65,7 +65,8 @@ public class ActionService {
         ConnectionFactory connectionFactory = jmsService.createConnectionFactory(datastore);
 
         try {
-            connection = jmsService.getConnection(connectionFactory, datastore);
+            connection = jmsService.getConnection(connectionFactory, datastore.isUserIdentity(), datastore.getUserName(),
+                    datastore.getPassword());
             connection.start();
             return new HealthCheckStatus(HealthCheckStatus.Status.OK, i18n.successConnection());
         } catch (JMSException e) {
