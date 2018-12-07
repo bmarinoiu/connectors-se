@@ -47,6 +47,18 @@
         </dependency>
     </dependencies>
 
+
+    <dependencies>
+        <dependency>
+            <groupId>javax.jms</groupId>
+            <artifactId>javax.jms-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-client</artifactId>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -96,6 +108,33 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExcludes>org.talend.sdk.component:component-runtime-beam
+                                </classpathDependencyExcludes>
+                                <classpathDependencyExcludes>org.apache.beam:beam-runners-direct-java
+                                </classpathDependencyExcludes>
+                            </classpathDependencyExcludes>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>surefire-beam-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>${surefire.version}</version>
                 <configuration>
@@ -106,10 +145,26 @@
                         <activemq.port>${activemq.port}</activemq.port>
                         <javax.net.ssl.trustStore>src/test/resources/client.ts</javax.net.ssl.trustStore>
                         <javax.net.ssl.trustStorePassword>password</javax.net.ssl.trustStorePassword>
+                        <talend.component.junit.handler.state>static</talend.component.junit.handler.state>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
                     <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExcludes>org.talend.sdk.component:component-runtime-beam
+                                </classpathDependencyExcludes>
+                                <classpathDependencyExcludes>org.apache.beam:beam-runners-direct-java
+                                </classpathDependencyExcludes>
+                            </classpathDependencyExcludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>filesafe-beam-test</id>
                         <goals>
                             <goal>integration-test</goal>
                             <goal>verify</goal>
@@ -179,4 +234,16 @@
             </plugin>
         </plugins>
     </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>javax.jms</groupId>
+            <artifactId>javax.jms-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-client</artifactId>
+        </dependency>
+    </dependencies>
+
 </project>
