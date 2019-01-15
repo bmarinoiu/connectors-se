@@ -123,8 +123,6 @@ public class Output implements Serializable {
 
     @PreDestroy
     public void release() {
-        service.closeProducer(producer);
-        service.closeSession(session);
         service.closeConnection(connection);
     }
 }

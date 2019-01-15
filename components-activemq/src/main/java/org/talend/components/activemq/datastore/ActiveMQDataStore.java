@@ -25,6 +25,7 @@ import org.talend.sdk.component.api.meta.Documentation;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.StringJoiner;
 
 import static org.talend.components.activemq.service.ActionService.ACTION_BASIC_HEALTH_CHECK;
 import static org.talend.sdk.component.api.configuration.condition.ActiveIfs.Operator.AND;
@@ -101,4 +102,47 @@ public class ActiveMQDataStore implements Serializable {
     @Documentation("Checkbox for transactions support")
     private Boolean transacted = false;
 
+    public String getUrl() {
+        String url;
+        if (!getFailover() && !getStaticDiscovery()) {
+            url = getBrokerURL(getSSL(), getHost(), getPort());
+        } else {
+            StringJoiner brokerURLs = new StringJoiner(",");
+            for (Broker brokerBroker : getBrokers()) {
+                brokerURLs.add(getBrokerURL(getSSL(), brokerBroker.getHost(), brokerBroker.getPort()));
+            }
+            url = getTransport() + ":(" + brokerURLs + ")" + getURIParameters();
+        }
+        return url;
+    }
+
+    private String getURIParameters() {
+        String URIParameters = "";
+        if (getFailover()) {
+            URIParameters = getFailoverURIParameters();
+        }
+        if (getStaticDiscovery()) {
+            URIParameters = getStaticDiscoveryURIParameters();
+        }
+        return URIParameters;
+    }
+
+    private String getBrokerURL(Boolean isSSLUsed, String host, String port) {
+        return isSecured(isSSLUsed) + "://" + host + ":" + port;
+    }
+
+    private String getTransport() {
+        String transport = null;
+        if (getFailover()) {
+            transport = "failover";
+        }
+        if (getStaticDiscovery()) {
+            transport = "discovery://static";
+        }
+        return transport;
+    }
+
+    private String isSecured(boolean sslTransport) {
+        return sslTransport ? "ssl" : "tcp";
+    }
 }

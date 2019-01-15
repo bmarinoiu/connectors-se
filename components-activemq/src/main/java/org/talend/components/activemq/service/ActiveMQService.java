@@ -21,13 +21,10 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.talend.components.activemq.configuration.Broker;
 import org.talend.components.activemq.configuration.MessageType;
 import org.talend.components.activemq.datastore.ActiveMQDataStore;
 import org.talend.sdk.component.api.service.Service;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.StringJoiner;
 
 @Slf4j
 @Service
@@ -41,48 +38,8 @@ public class ActiveMQService {
     }
 
     public ConnectionFactory createConnectionFactory(ActiveMQDataStore dataStore) {
-        String url;
-        if (!dataStore.getFailover() && !dataStore.getStaticDiscovery()) {
-            url = getBrokerURL(dataStore.getSSL(), dataStore.getHost(), dataStore.getPort());
-        } else {
-            StringJoiner brokerURLs = new StringJoiner(",");
-            for (Broker brokerBroker : dataStore.getBrokers()) {
-                brokerURLs.add(getBrokerURL(dataStore.getSSL(), brokerBroker.getHost(), brokerBroker.getPort()));
-            }
-            url = getTransport(dataStore) + ":(" + brokerURLs + ")" + getURIParameters(dataStore);
-        }
-        log.info(url);
-        return new ActiveMQConnectionFactory(url);
-    }
-
-    private String getURIParameters(ActiveMQDataStore dataStore) {
-        String URIParameters = "";
-        if (dataStore.getFailover()) {
-            URIParameters = dataStore.getFailoverURIParameters();
-        }
-        if (dataStore.getStaticDiscovery()) {
-            URIParameters = dataStore.getStaticDiscoveryURIParameters();
-        }
-        return URIParameters;
-    }
-
-    private String getBrokerURL(Boolean isSSLUsed, String host, String port) {
-        return isSecured(isSSLUsed) + "://" + host + ":" + port;
-    }
-
-    private String getTransport(ActiveMQDataStore dataStore) {
-        String transport = null;
-        if (dataStore.getFailover()) {
-            transport = "failover";
-        }
-        if (dataStore.getStaticDiscovery()) {
-            transport = "discovery://static";
-        }
-        return transport;
-    }
-
-    private String isSecured(boolean sslTransport) {
-        return sslTransport ? "ssl" : "tcp";
+        log.info(dataStore.getUrl());
+        return new ActiveMQConnectionFactory(dataStore.getUrl());
     }
 
     public Session getSession(Connection connection, Boolean transacted) throws JMSException {
@@ -101,36 +58,6 @@ public class ActiveMQService {
                 connection.close();
             } catch (JMSException e) {
                 log.warn(i18n.warnConnectionCantBeClosed(), e);
-            }
-        }
-    }
-
-    public void closeSession(Session session) {
-        if (session != null) {
-            try {
-                session.close();
-            } catch (JMSException e) {
-                log.warn(i18n.warnSessionCantBeClosed(), e);
-            }
-        }
-    }
-
-    public void closeProducer(MessageProducer producer) {
-        if (producer != null) {
-            try {
-                producer.close();
-            } catch (JMSException e) {
-                log.warn(i18n.warnProducerCantBeClosed(), e);
-            }
-        }
-    }
-
-    public void closeConsumer(MessageConsumer consumer) {
-        if (consumer != null) {
-            try {
-                consumer.close();
-            } catch (JMSException e) {
-                log.warn(i18n.warnConsumerCantBeClosed(), e);
             }
         }
     }

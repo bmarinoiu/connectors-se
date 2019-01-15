@@ -169,8 +169,6 @@ public class InputSource implements Serializable {
 
     @PreDestroy
     public void release() {
-        service.closeConsumer(consumer);
-        service.closeSession(session);
         service.closeConnection(connection);
     }
 }
