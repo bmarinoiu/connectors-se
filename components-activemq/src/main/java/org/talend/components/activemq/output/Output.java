@@ -81,7 +81,7 @@ public class Output implements Serializable {
                         configuration.getBasicConfig().getConnection().getUserName(),
                         configuration.getBasicConfig().getConnection().getPassword());
             } catch (JMSException e) {
-                throw new IllegalStateException(i18n.errorInvalidConnection());
+                throw new IllegalStateException(e.getMessage());
             }
 
             try {

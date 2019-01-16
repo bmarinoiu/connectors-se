@@ -32,7 +32,7 @@ class ActionServiceTest {
         HealthCheckStatus status = actionService.validateBasicDatastore(dataStore);
 
         assertEquals(HealthCheckStatus.Status.KO, status.getStatus());
-        assertEquals("Invalid connection", status.getComment());
+        assertTrue(status.getComment().contains("Connection refused"));
     }
 
     @Test

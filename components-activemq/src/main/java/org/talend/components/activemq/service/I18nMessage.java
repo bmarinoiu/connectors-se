@@ -21,8 +21,6 @@ public interface I18nMessage {
 
     String errorEmptyPort();
 
-    String errorInvalidConnection();
-
     String errorStartMessagesDelivery();
 
     String errorCreateJMSInstance();
@@ -30,12 +28,6 @@ public interface I18nMessage {
     String errorCantSendMessage();
 
     String errorCantReceiveMessage();
-
-    String warnProducerCantBeClosed();
-
-    String warnConsumerCantBeClosed();
-
-    String warnSessionCantBeClosed();
 
     String warnConnectionCantBeClosed();
 

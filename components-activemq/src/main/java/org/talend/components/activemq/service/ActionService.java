@@ -69,7 +69,7 @@ public class ActionService {
             connection.start();
             return new HealthCheckStatus(HealthCheckStatus.Status.OK, i18n.successConnection());
         } catch (JMSException e) {
-            return new HealthCheckStatus(HealthCheckStatus.Status.KO, i18n.errorInvalidConnection());
+            return new HealthCheckStatus(HealthCheckStatus.Status.KO, e.getMessage());
         } finally {
             activeMQService.closeConnection(connection);
         }
