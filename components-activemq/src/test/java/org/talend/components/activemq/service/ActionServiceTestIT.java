@@ -7,8 +7,7 @@ import org.talend.sdk.component.api.service.healthcheck.HealthCheckStatus;
 import org.talend.sdk.component.junit5.WithComponents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.talend.components.activemq.testutils.ActiveMQTestConstants.LOCALHOST;
-import static org.talend.components.activemq.testutils.ActiveMQTestConstants.PORT;
+import static org.talend.components.activemq.testutils.ActiveMQTestConstants.*;
 
 @WithComponents("org.talend.components.activemq")
 class ActionServiceTestIT {
@@ -30,7 +29,7 @@ class ActionServiceTestIT {
     @Test
     public void testJMSNotSuccessfulConnection() {
         ActiveMQDataStore dataStore = new ActiveMQDataStore();
-        dataStore.setHost("124");
+        dataStore.setHost(WRONG_HOST);
         dataStore.setPort(PORT);
         dataStore.setSSL(true);
         HealthCheckStatus status = actionService.validateBasicDatastore(dataStore);

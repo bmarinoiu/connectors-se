@@ -331,8 +331,8 @@ public class ActiveMQTestIT {
         List<Broker> brokers = new ArrayList<>();
         Broker broker1 = new Broker();
         Broker broker2 = new Broker();
-        broker1.setHost("test");
-        broker1.setPort("1234");
+        broker1.setHost(WRONG_HOST);
+        broker1.setPort(WRONG_PORT);
         broker2.setHost(LOCALHOST);
         broker2.setPort(PORT);
         brokers.add(broker1);

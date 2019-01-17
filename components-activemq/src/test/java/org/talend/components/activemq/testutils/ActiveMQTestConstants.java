@@ -4,6 +4,10 @@ public class ActiveMQTestConstants {
 
     public static final String LOCALHOST = "localhost";
 
+    public static final String WRONG_HOST = "host";
+
+    public static final String WRONG_PORT = "1234";
+
     public static final String PORT = System.getProperty("activemq.port", "61617");
 
     public static final String DESTINATION = "test";
