@@ -4,7 +4,7 @@ public class ActiveMQTestConstants {
 
     public static final String LOCALHOST = "localhost";
 
-    public static final String PORT;
+    public static final String PORT = System.getProperty("activemq.port", "61617");
 
     public static final String DESTINATION = "test";
 
@@ -24,8 +24,4 @@ public class ActiveMQTestConstants {
 
     public static final int TEN_MESSAGES = 10;
 
-    static {
-        String systemPropertyPort = System.getProperty("activemq.port");
-        PORT = systemPropertyPort != null ? systemPropertyPort : "61617";
-    }
 }

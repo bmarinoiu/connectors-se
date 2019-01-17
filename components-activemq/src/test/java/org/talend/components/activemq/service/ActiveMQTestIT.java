@@ -29,7 +29,7 @@ import static org.talend.components.activemq.testutils.ActiveMQTestConstants.*;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
 
 @WithComponents("org.talend.components.activemq") // component package
-public class ActiveMQServiceTestIT {
+public class ActiveMQTestIT {
 
     @Injected
     private BaseComponentsHandler componentsHandler;
@@ -42,15 +42,14 @@ public class ActiveMQServiceTestIT {
         // Send message to QUEUE
         componentsHandler.setInputData(asList(factory.createObjectBuilder().add(MESSAGE_CONTENT, TEST_MESSAGE).build()));
 
-        final String outputConfig = configurationByExample().forInstance(getOutputConfiguration()).configured().toQueryString();
-        Job.components().component("activemq-output", "ActiveMQ://Output?" + outputConfig).component("emitter", "test://emitter")
-                .connections().from("emitter").to("activemq-output").build().run();
+        final String outputConfig = configurationByExample().forInstance(createOutputConfiguration()).configured()
+                .toQueryString();
+        sendMessageToActiveMQBroker(outputConfig);
 
         // Receive message from QUEUE
-        final String inputConfig = configurationByExample().forInstance(getInputConfiguration()).configured().toQueryString();
+        final String inputConfig = configurationByExample().forInstance(createInputConfiguration()).configured().toQueryString();
 
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         final List<JsonObject> res = componentsHandler.getCollectedData(JsonObject.class);
         Optional optional = res.stream().findFirst();
@@ -62,27 +61,24 @@ public class ActiveMQServiceTestIT {
     @Test
     public void sendAndReceiveJMSMessageDurableTopic() {
         // Subscribe to Durable TOPIC
-        InputMapperConfiguration inputConfiguration = getInputConfiguration();
+        InputMapperConfiguration inputConfiguration = createInputConfiguration();
         inputConfiguration.getSubscriptionConfig().setDurableSubscription(true);
         inputConfiguration.getBasicConfig().setMessageType(MessageType.TOPIC);
 
         final String inputConfig = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
 
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         // Send message to TOPIC
         componentsHandler.setInputData(asList(factory.createObjectBuilder().add(MESSAGE_CONTENT, TEST_MESSAGE).build()));
 
-        OutputConfiguration outputConfiguration = getOutputConfiguration();
+        OutputConfiguration outputConfiguration = createOutputConfiguration();
         outputConfiguration.getBasicConfig().setMessageType(MessageType.TOPIC);
         final String outputConfig = configurationByExample().forInstance(outputConfiguration).configured().toQueryString();
-        Job.components().component("activemq-output", "ActiveMQ://Output?" + outputConfig).component("emitter", "test://emitter")
-                .connections().from("emitter").to("activemq-output").build().run();
+        sendMessageToActiveMQBroker(outputConfig);
 
         // Receive message from TOPIC
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         final List<JsonObject> res = componentsHandler.getCollectedData(JsonObject.class);
         Optional optional = res.stream().findFirst();
@@ -97,24 +93,22 @@ public class ActiveMQServiceTestIT {
         // Send message to QUEUE
         componentsHandler.setInputData(asList(factory.createObjectBuilder().add(MESSAGE_CONTENT, TEST_MESSAGE).build()));
 
-        OutputConfiguration outputConfiguration = getOutputConfiguration();
+        OutputConfiguration outputConfiguration = createOutputConfiguration();
         outputConfiguration.getBasicConfig().getConnection().setFailover(true);
-        List<Broker> brokers = getBrokers();
+        List<Broker> brokers = createBrokers();
         outputConfiguration.getBasicConfig().getConnection().setBrokers(brokers);
 
         final String outputConfig = configurationByExample().forInstance(outputConfiguration).configured().toQueryString();
-        Job.components().component("activemq-output", "ActiveMQ://Output?" + outputConfig).component("emitter", "test://emitter")
-                .connections().from("emitter").to("activemq-output").build().run();
+        sendMessageToActiveMQBroker(outputConfig);
 
         // Receive message from QUEUE
-        InputMapperConfiguration inputConfiguration = getInputConfiguration();
+        InputMapperConfiguration inputConfiguration = createInputConfiguration();
         inputConfiguration.getBasicConfig().getConnection().setBrokers(brokers);
         outputConfiguration.getBasicConfig().getConnection().setFailover(true);
 
         final String inputConfig = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
 
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         final List<JsonObject> res = componentsHandler.getCollectedData(JsonObject.class);
         Optional optional = res.stream().findFirst();
@@ -125,10 +119,10 @@ public class ActiveMQServiceTestIT {
 
     @Test
     public void sendAndReceiveJMSMessageDurableTopicFailover() {
-        List<Broker> brokers = getBrokers();
+        List<Broker> brokers = createBrokers();
 
         // Subscribe to Durable TOPIC
-        InputMapperConfiguration inputConfiguration = getInputConfiguration();
+        InputMapperConfiguration inputConfiguration = createInputConfiguration();
         inputConfiguration.getBasicConfig().getConnection().setBrokers(brokers);
         inputConfiguration.getBasicConfig().getConnection().setFailover(true);
         inputConfiguration.getSubscriptionConfig().setDurableSubscription(true);
@@ -136,25 +130,22 @@ public class ActiveMQServiceTestIT {
 
         final String inputConfig = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
 
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         // Send message to TOPIC
         componentsHandler.setInputData(asList(factory.createObjectBuilder().add(MESSAGE_CONTENT, TEST_MESSAGE).build()));
 
-        OutputConfiguration outputConfiguration = getOutputConfiguration();
+        OutputConfiguration outputConfiguration = createOutputConfiguration();
         outputConfiguration.getBasicConfig().getConnection().setFailover(true);
 
         outputConfiguration.getBasicConfig().getConnection().setBrokers(brokers);
         outputConfiguration.getBasicConfig().setMessageType(MessageType.TOPIC);
 
         final String outputConfig = configurationByExample().forInstance(outputConfiguration).configured().toQueryString();
-        Job.components().component("activemq-output", "ActiveMQ://Output?" + outputConfig).component("emitter", "test://emitter")
-                .connections().from("emitter").to("activemq-output").build().run();
+        sendMessageToActiveMQBroker(outputConfig);
 
         // Receive message from TOPIC
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         final List<JsonObject> res = componentsHandler.getCollectedData(JsonObject.class);
         Optional optional = res.stream().findFirst();
@@ -169,22 +160,20 @@ public class ActiveMQServiceTestIT {
         // Send message to QUEUE
         componentsHandler.setInputData(asList(factory.createObjectBuilder().add(MESSAGE_CONTENT, TEST_MESSAGE).build()));
 
-        OutputConfiguration outputConfiguration = getOutputConfiguration();
+        OutputConfiguration outputConfiguration = createOutputConfiguration();
         outputConfiguration.getBasicConfig().getConnection().setStaticDiscovery(true);
-        outputConfiguration.getBasicConfig().getConnection().setBrokers(getBrokers());
+        outputConfiguration.getBasicConfig().getConnection().setBrokers(createBrokers());
         final String outputConfig = configurationByExample().forInstance(outputConfiguration).configured().toQueryString();
-        Job.components().component("activemq-output", "ActiveMQ://Output?" + outputConfig).component("emitter", "test://emitter")
-                .connections().from("emitter").to("activemq-output").build().run();
+        sendMessageToActiveMQBroker(outputConfig);
 
         // Receive message from QUEUE
-        InputMapperConfiguration inputConfiguration = getInputConfiguration();
-        inputConfiguration.getBasicConfig().getConnection().setBrokers(getBrokers());
+        InputMapperConfiguration inputConfiguration = createInputConfiguration();
+        inputConfiguration.getBasicConfig().getConnection().setBrokers(createBrokers());
         outputConfiguration.getBasicConfig().getConnection().setStaticDiscovery(true);
 
         final String inputConfig = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
 
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         final List<JsonObject> res = componentsHandler.getCollectedData(JsonObject.class);
         Optional optional = res.stream().findFirst();
@@ -197,33 +186,30 @@ public class ActiveMQServiceTestIT {
     public void sendAndReceiveJMSMessageDurableTopicStaticDiscovery() {
 
         // Subscribe to Durable TOPIC
-        InputMapperConfiguration inputConfiguration = getInputConfiguration();
-        inputConfiguration.getBasicConfig().getConnection().setBrokers(getBrokers());
+        InputMapperConfiguration inputConfiguration = createInputConfiguration();
+        inputConfiguration.getBasicConfig().getConnection().setBrokers(createBrokers());
         inputConfiguration.getBasicConfig().getConnection().setStaticDiscovery(true);
         inputConfiguration.getSubscriptionConfig().setDurableSubscription(true);
         inputConfiguration.getBasicConfig().setMessageType(MessageType.TOPIC);
 
         final String inputConfig = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
 
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         // Send message to TOPIC
         componentsHandler.setInputData(asList(factory.createObjectBuilder().add(MESSAGE_CONTENT, TEST_MESSAGE).build()));
 
-        OutputConfiguration outputConfiguration = getOutputConfiguration();
+        OutputConfiguration outputConfiguration = createOutputConfiguration();
         outputConfiguration.getBasicConfig().getConnection().setStaticDiscovery(true);
 
-        outputConfiguration.getBasicConfig().getConnection().setBrokers(getBrokers());
+        outputConfiguration.getBasicConfig().getConnection().setBrokers(createBrokers());
         outputConfiguration.getBasicConfig().setMessageType(MessageType.TOPIC);
 
         final String outputConfig = configurationByExample().forInstance(outputConfiguration).configured().toQueryString();
-        Job.components().component("activemq-output", "ActiveMQ://Output?" + outputConfig).component("emitter", "test://emitter")
-                .connections().from("emitter").to("activemq-output").build().run();
+        sendMessageToActiveMQBroker(outputConfig);
 
         // Receive message from TOPIC
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         final List<JsonObject> res = componentsHandler.getCollectedData(JsonObject.class);
         Optional optional = res.stream().findFirst();
@@ -235,7 +221,7 @@ public class ActiveMQServiceTestIT {
 
     @Test
     public void emptyUrlTest() {
-        InputMapperConfiguration inputConfiguration = getInputConfiguration();
+        InputMapperConfiguration inputConfiguration = createInputConfiguration();
         inputConfiguration.getBasicConfig().getConnection().setHost("");
         final String inputConfig = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
 
@@ -249,25 +235,23 @@ public class ActiveMQServiceTestIT {
     public void testMessageSelector() {
         // Send Not Persistent message
         componentsHandler.setInputData(asList(factory.createObjectBuilder().add(MESSAGE_CONTENT, TEST_MESSAGE).build()));
-        final String outputConfig = configurationByExample().forInstance(getOutputConfiguration()).configured().toQueryString();
-        Job.components().component("activemq-output", "ActiveMQ://Output?" + outputConfig).component("emitter", "test://emitter")
-                .connections().from("emitter").to("activemq-output").build().run();
+        final String outputConfig = configurationByExample().forInstance(createOutputConfiguration()).configured()
+                .toQueryString();
+        sendMessageToActiveMQBroker(outputConfig);
 
         // Send Persistent message
         componentsHandler.setInputData(asList(factory.createObjectBuilder().add(MESSAGE_CONTENT, TEST_MESSAGE2).build()));
-        OutputConfiguration outputConfiguration = getOutputConfiguration();
+        OutputConfiguration outputConfiguration = createOutputConfiguration();
         outputConfiguration.setDeliveryMode(OutputConfiguration.DeliveryMode.PERSISTENT);
         final String outputConfig2 = configurationByExample().forInstance(outputConfiguration).configured().toQueryString();
-        Job.components().component("activemq-output", "ActiveMQ://Output?" + outputConfig2).component("emitter", "test://emitter")
-                .connections().from("emitter").to("activemq-output").build().run();
+        sendMessageToActiveMQBroker(outputConfig2);
 
         // Add filter query to receive only PERSISTENT message
-        InputMapperConfiguration inputMapperConfiguration = getInputConfiguration();
+        InputMapperConfiguration inputMapperConfiguration = createInputConfiguration();
         inputMapperConfiguration.setMessageSelector("JMSDeliveryMode = 'PERSISTENT'");
         final String inputConfig = configurationByExample().forInstance(inputMapperConfiguration).configured().toQueryString();
 
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         final List<JsonObject> res = componentsHandler.getCollectedData(JsonObject.class);
         Optional optional = res.stream().findFirst();
@@ -282,36 +266,33 @@ public class ActiveMQServiceTestIT {
         // Send message to QUEUE
         componentsHandler.setInputData(asList(factory.createObjectBuilder().add(MESSAGE_CONTENT, TEST_MESSAGE).build()));
 
-        final String outputConfig2 = configurationByExample().forInstance(getOutputConfiguration()).configured().toQueryString();
-        Job.components().component("activemq-output", "ActiveMQ://Output?" + outputConfig2).component("emitter", "test://emitter")
-                .connections().from("emitter").to("activemq-output").build().run();
+        final String outputConfig2 = configurationByExample().forInstance(createOutputConfiguration()).configured()
+                .toQueryString();
+        sendMessageToActiveMQBroker(outputConfig2);
 
         // Forbid message receiving
-        InputMapperConfiguration inputMapperConfiguration = getInputConfiguration();
+        InputMapperConfiguration inputMapperConfiguration = createInputConfiguration();
         inputMapperConfiguration.setMaximumMessages(NO_MESSAGES);
         final String inputConfig = configurationByExample().forInstance(inputMapperConfiguration).configured().toQueryString();
 
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig).component("collector", "test://collector")
-                .connections().from("activemq-input").to("collector").build().run();
+        receiveMessageFromActiveMQBroker(inputConfig);
 
         final List<JsonObject> res = componentsHandler.getCollectedData(JsonObject.class);
         assertTrue(res.isEmpty(), "Component should not process data");
 
         // Allow message receiving
-        InputMapperConfiguration inputMapperConfiguration2 = getInputConfiguration();
+        InputMapperConfiguration inputMapperConfiguration2 = createInputConfiguration();
         inputMapperConfiguration.setMaximumMessages(TEN_MESSAGES);
         final String inputConfig2 = configurationByExample().forInstance(inputMapperConfiguration2).configured().toQueryString();
 
-        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig2)
-                .component("collector", "test://collector").connections().from("activemq-input").to("collector").build().run();
-
+        receiveMessageFromActiveMQBroker(inputConfig2);
         final List<JsonObject> res2 = componentsHandler.getCollectedData(JsonObject.class);
         Optional optional = res2.stream().findFirst();
         assertTrue(optional.isPresent(), "Message was not received");
 
     }
 
-    private OutputConfiguration getOutputConfiguration() {
+    private OutputConfiguration createOutputConfiguration() {
         OutputConfiguration configuration = new OutputConfiguration();
         BasicConfiguration basicConfiguration = new BasicConfiguration();
         ActiveMQDataStore dataStore = new ActiveMQDataStore();
@@ -325,7 +306,7 @@ public class ActiveMQServiceTestIT {
         return configuration;
     }
 
-    private InputMapperConfiguration getInputConfiguration() {
+    private InputMapperConfiguration createInputConfiguration() {
         InputMapperConfiguration configuration = new InputMapperConfiguration();
         BasicConfiguration basicConfiguration = new BasicConfiguration();
         ActiveMQDataStore dataStore = new ActiveMQDataStore();
@@ -346,7 +327,7 @@ public class ActiveMQServiceTestIT {
         return configuration;
     }
 
-    private List<Broker> getBrokers() {
+    private List<Broker> createBrokers() {
         List<Broker> brokers = new ArrayList<>();
         Broker broker1 = new Broker();
         Broker broker2 = new Broker();
@@ -357,6 +338,16 @@ public class ActiveMQServiceTestIT {
         brokers.add(broker1);
         brokers.add(broker2);
         return brokers;
+    }
+
+    private void sendMessageToActiveMQBroker(String outputConfig) {
+        Job.components().component("activemq-output", "ActiveMQ://Output?" + outputConfig).component("emitter", "test://emitter")
+                .connections().from("emitter").to("activemq-output").build().run();
+    }
+
+    private void receiveMessageFromActiveMQBroker(String inputConfig2) {
+        Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig2)
+                .component("collector", "test://collector").connections().from("activemq-input").to("collector").build().run();
     }
 
 }
