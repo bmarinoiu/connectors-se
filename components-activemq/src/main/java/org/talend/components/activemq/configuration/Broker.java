@@ -15,6 +15,6 @@ public class Broker implements Serializable {
 
     @Option
     @Documentation("JMS broker port")
-    private String port;
+    private Integer port;
 
 }

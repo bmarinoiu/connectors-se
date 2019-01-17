@@ -81,7 +81,7 @@ public class ActiveMQDataStore implements Serializable {
     @ActiveIfs(value = { @ActiveIf(target = "failover", value = "false"),
             @ActiveIf(target = "staticDiscovery", value = "false") }, operator = AND)
     @Documentation("Input for JMS server Broker")
-    private String port;
+    private Integer port;
 
     @Option
     @Documentation("Checkbox for User login/password checking")
@@ -127,7 +127,7 @@ public class ActiveMQDataStore implements Serializable {
         return URIParameters;
     }
 
-    private String getBrokerURL(Boolean isSSLUsed, String host, String port) {
+    private String getBrokerURL(Boolean isSSLUsed, String host, Integer port) {
         return isSecured(isSSLUsed) + "://" + host + ":" + port;
     }
 
