@@ -96,7 +96,7 @@ public class Output implements Serializable {
                     configuration.getBasicConfig().getMessageType());
 
             producer = session.createProducer(destination);
-            producer.setDeliveryMode(configuration.getDeliveryMode().getIntValue());
+            producer.setDeliveryMode(configuration.getDeliveryMode().getDeliveryMode());
         } catch (JMSException e) {
             throw new IllegalStateException(i18n.errorCreateJMSInstance());
         }

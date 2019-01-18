@@ -39,14 +39,14 @@ public class OutputConfiguration implements Serializable {
         NOT_PERSISTENT(1),
         PERSISTENT(2);
 
-        private int intValue;
+        private int deliveryMode;
 
         DeliveryMode(int value) {
-            this.intValue = value;
+            this.deliveryMode = value;
         }
 
-        public int getIntValue() {
-            return intValue;
+        public int getDeliveryMode() {
+            return deliveryMode;
         }
     }
 

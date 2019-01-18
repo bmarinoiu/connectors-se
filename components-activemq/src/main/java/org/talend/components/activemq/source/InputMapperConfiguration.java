@@ -25,8 +25,7 @@ import java.io.Serializable;
 @GridLayout(value = { @GridLayout.Row({ "basicConfig" }), @GridLayout.Row({ "subscriptionConfig" }),
         @GridLayout.Row({ "timeout" }), @GridLayout.Row({ "maximumMessages" }),
         @GridLayout.Row({ "messageSelector" }) }, names = GridLayout.FormType.MAIN)
-@GridLayout(value = { @GridLayout.Row({ "basicConfig" }),
-        @GridLayout.Row({ "maxBatchSize" }) }, names = GridLayout.FormType.ADVANCED)
+@GridLayout(value = { @GridLayout.Row({ "basicConfig" }) }, names = GridLayout.FormType.ADVANCED)
 @Documentation("Main configuration class for JMSInput component")
 @Data
 public class InputMapperConfiguration implements Serializable {
