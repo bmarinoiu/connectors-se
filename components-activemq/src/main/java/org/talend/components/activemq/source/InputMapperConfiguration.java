@@ -55,8 +55,4 @@ public class InputMapperConfiguration implements Serializable {
     @Documentation("Message Selector Expression used to receive only messages whose headers and properties match the selector")
     private String messageSelector;
 
-    @Option
-    @Documentation("Maximum batch size")
-    private Integer maxBatchSize = 1000;
-
 }

@@ -118,33 +118,10 @@ public class InputSource implements Serializable {
         if (counter >= configuration.getMaximumMessages()) {
             return null;
         } else {
-            String message = getMessage();
+            String message = receiveMessage();
+            counter++;
             return message != null ? buildJSON(message) : null;
         }
-    }
-
-    private String getMessage() {
-        String message;
-        if (configuration.getBasicConfig().getConnection().getTransacted()) {
-            if (messages.isEmpty()) {
-                receiveNextBatch();
-            }
-            message = messages.poll();
-        } else {
-            message = receiveMessage();
-        }
-        return message;
-    }
-
-    private void receiveNextBatch() {
-        for (int i = 0; i < configuration.getMaxBatchSize(); i++) {
-            String message = receiveMessage();
-            if (message == null) {
-                break;
-            }
-            messages.add(message);
-        }
-        service.commit(session);
     }
 
     private String receiveMessage() {
