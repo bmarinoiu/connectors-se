@@ -26,7 +26,7 @@ import java.util.List;
 
 import static org.talend.components.activemq.service.ActionService.DISCOVER_SCHEMA;
 
-@DataSet("JMSDataSet")
+@DataSet("ActiveMQDataSet")
 @Data
 @GridLayout(value = { @GridLayout.Row({ "connection" }), @GridLayout.Row({ "messageType" }),
         @GridLayout.Row({ "destination" }) }, names = GridLayout.FormType.MAIN)
