@@ -2,9 +2,7 @@ package org.talend.components.activemq.testutils;
 
 public class ActiveMQTestConstants {
 
-    public static final String LOCALHOST = "localhost";
-
-    public static final String WRONG_HOST = "host";
+    public static final String WRONG_HOST = "qwert";
 
     public static final Integer WRONG_PORT = 1234;
 

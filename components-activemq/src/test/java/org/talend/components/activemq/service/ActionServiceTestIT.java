@@ -1,6 +1,10 @@
 package org.talend.components.activemq.service;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.talend.components.activemq.ActiveMQTestExtention;
 import org.talend.components.activemq.datastore.ActiveMQDataStore;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.healthcheck.HealthCheckStatus;
@@ -10,18 +14,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.talend.components.activemq.testutils.ActiveMQTestConstants.*;
 
 @WithComponents("org.talend.components.activemq")
+@ExtendWith(ActiveMQTestExtention.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ActionServiceTestIT {
 
     @Service
     private ActionService actionService;
 
+    private ActiveMQTestExtention.TestContext testContext;
+
+    @BeforeAll
+    private void init(ActiveMQTestExtention.TestContext testContext) {
+        this.testContext = testContext;
+    }
+
     @Test
     public void testJMSSuccessfulConnection() {
-        ActiveMQDataStore dataStore = new ActiveMQDataStore();
-        dataStore.setHost(LOCALHOST);
-        dataStore.setPort(PORT);
-        dataStore.setSSL(true);
-        HealthCheckStatus status = actionService.validateBasicDatastore(dataStore);
+        HealthCheckStatus status = actionService.validateBasicDatastore(testContext.getDataStore());
 
         assertEquals(HealthCheckStatus.Status.OK, status.getStatus());
     }

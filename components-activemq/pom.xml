@@ -32,6 +32,7 @@
         TIP: it is recommended to set this property into your settings.xml in an active by default profile.
         -->
         <talend.component.studioHome/>
+        <testcontainers.version>1.10.3</testcontainers.version>
     </properties>
 
     <dependencies>
@@ -54,6 +55,12 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -181,54 +188,6 @@
                         <version>${junit5.version}</version>
                     </dependency>
                 </dependencies>
-            </plugin>
-            <plugin>
-                <groupId>io.fabric8</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <version>${docker-maven-plugin.version}</version>
-                <configuration>
-                    <skip>${skipTests}</skip>
-                    <images>
-                        <image>
-                            <alias>amqtest</alias>
-                            <name>vizotenko/activemq:1.0.0</name>
-                            <build>
-                                <dockerFileDir>demo</dockerFileDir>
-                            </build>
-                            <run>
-                                <ports>
-                                    <port>activemq.port:61617</port>
-                                </ports>
-                                <wait>
-                                    <tcp>
-                                        <host>localhost</host>
-                                        <ports>
-                                            <port>61617</port>
-                                        </ports>
-                                    </tcp>
-                                    <time>60000</time>
-                                </wait>
-                            </run>
-                        </image>
-                    </images>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>start</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>build</goal>
-                            <goal>start</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>stop</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>stop</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

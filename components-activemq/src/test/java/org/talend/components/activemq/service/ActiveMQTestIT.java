@@ -1,6 +1,10 @@
 package org.talend.components.activemq.service;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.talend.components.activemq.ActiveMQTestExtention;
 import org.talend.components.activemq.configuration.BasicConfiguration;
 import org.talend.components.activemq.configuration.Broker;
 import org.talend.components.activemq.configuration.MessageType;
@@ -29,6 +33,8 @@ import static org.talend.components.activemq.testutils.ActiveMQTestConstants.*;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
 
 @WithComponents("org.talend.components.activemq") // component package
+@ExtendWith(ActiveMQTestExtention.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ActiveMQTestIT {
 
     @Injected
@@ -36,6 +42,13 @@ public class ActiveMQTestIT {
 
     @Service
     private JsonBuilderFactory factory;
+
+    private ActiveMQTestExtention.TestContext testContext;
+
+    @BeforeAll
+    private void init(ActiveMQTestExtention.TestContext testContext) {
+        this.testContext = testContext;
+    }
 
     @Test
     public void sendAndReceiveJMSMessageQueue() {
@@ -295,9 +308,7 @@ public class ActiveMQTestIT {
     private OutputConfiguration createOutputConfiguration() {
         OutputConfiguration configuration = new OutputConfiguration();
         BasicConfiguration basicConfiguration = new BasicConfiguration();
-        ActiveMQDataStore dataStore = new ActiveMQDataStore();
-        dataStore.setHost(LOCALHOST);
-        dataStore.setPort(PORT);
+        ActiveMQDataStore dataStore = testContext.getDataStore();
         dataStore.setSSL(true);
         basicConfiguration.setDestination(DESTINATION);
         basicConfiguration.setMessageType(MessageType.QUEUE);
@@ -309,9 +320,7 @@ public class ActiveMQTestIT {
     private InputMapperConfiguration createInputConfiguration() {
         InputMapperConfiguration configuration = new InputMapperConfiguration();
         BasicConfiguration basicConfiguration = new BasicConfiguration();
-        ActiveMQDataStore dataStore = new ActiveMQDataStore();
-        dataStore.setHost(LOCALHOST);
-        dataStore.setPort(PORT);
+        ActiveMQDataStore dataStore = testContext.getDataStore();
         dataStore.setSSL(true);
         basicConfiguration.setDestination(DESTINATION);
         basicConfiguration.setMessageType(MessageType.QUEUE);
@@ -333,8 +342,8 @@ public class ActiveMQTestIT {
         Broker broker2 = new Broker();
         broker1.setHost(WRONG_HOST);
         broker1.setPort(WRONG_PORT);
-        broker2.setHost(LOCALHOST);
-        broker2.setPort(PORT);
+        broker2.setHost(testContext.getDataStore().getHost());
+        broker2.setPort(testContext.getDataStore().getPort());
         brokers.add(broker1);
         brokers.add(broker2);
         return brokers;

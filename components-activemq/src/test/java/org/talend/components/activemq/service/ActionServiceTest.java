@@ -14,8 +14,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.talend.components.activemq.MessageConst.MESSAGE_CONTENT;
-import static org.talend.components.activemq.testutils.ActiveMQTestConstants.LOCALHOST;
-import static org.talend.components.activemq.testutils.ActiveMQTestConstants.PORT;
+import static org.talend.components.activemq.testutils.ActiveMQTestConstants.WRONG_HOST;
+import static org.talend.components.activemq.testutils.ActiveMQTestConstants.WRONG_PORT;
 
 @WithComponents("org.talend.components.activemq")
 class ActionServiceTest {
@@ -26,13 +26,13 @@ class ActionServiceTest {
     @Test
     public void testJMSNoConnection() {
         ActiveMQDataStore dataStore = new ActiveMQDataStore();
-        dataStore.setHost(LOCALHOST);
-        dataStore.setPort(PORT);
+        dataStore.setHost(WRONG_HOST);
+        dataStore.setPort(WRONG_PORT);
         dataStore.setSSL(true);
         HealthCheckStatus status = actionService.validateBasicDatastore(dataStore);
 
         assertEquals(HealthCheckStatus.Status.KO, status.getStatus());
-        assertTrue(status.getComment().contains("Connection refused"));
+        assertTrue(status.getComment().contains("Could not connect to broker"));
     }
 
     @Test
