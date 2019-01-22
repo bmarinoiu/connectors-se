@@ -39,7 +39,7 @@ class ActionServiceTestIT {
     public void testJMSNotSuccessfulConnection() {
         ActiveMQDataStore dataStore = new ActiveMQDataStore();
         dataStore.setHost(WRONG_HOST);
-        dataStore.setPort(PORT);
+        dataStore.setPort(WRONG_PORT);
         dataStore.setSSL(true);
         HealthCheckStatus status = actionService.validateBasicDatastore(dataStore);
 

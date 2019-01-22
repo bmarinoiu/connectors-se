@@ -6,8 +6,6 @@ public class ActiveMQTestConstants {
 
     public static final Integer WRONG_PORT = 1234;
 
-    public static final Integer PORT = Integer.valueOf(System.getProperty("activemq.port", "61617"));
-
     public static final String DESTINATION = "test";
 
     public static final String TEST_MESSAGE = "hello world";
