@@ -74,6 +74,7 @@ public class ActiveMQTestExtention implements ExtensionContext.Store.CloseableRe
 
     @Data
     public static class TestContext {
+
         private ActiveMQDataStore dataStore;
     }
 }
