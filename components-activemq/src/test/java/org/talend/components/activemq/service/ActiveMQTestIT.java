@@ -232,17 +232,17 @@ public class ActiveMQTestIT {
                 "Sent and received messages should be equal");
     }
 
-    @Test
-    public void emptyUrlTest() {
-        InputMapperConfiguration inputConfiguration = createInputConfiguration();
-        inputConfiguration.getBasicConfig().getConnection().setHost("");
-        final String inputConfig = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-
-        assertThrows(IllegalStateException.class,
-                () -> Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig)
-                        .component("collector", "test://collector").connections().from("activemq-input").to("collector").build()
-                        .run());
-    }
+    // @Test
+    // public void emptyUrlTest() {
+    // InputMapperConfiguration inputConfiguration = createInputConfiguration();
+    // inputConfiguration.getBasicConfig().getConnection().setHost("");
+    // final String inputConfig = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
+    //
+    // assertThrows(IllegalStateException.class,
+    // () -> Job.components().component("activemq-input", "ActiveMQ://Input?" + inputConfig)
+    // .component("collector", "test://collector").connections().from("activemq-input").to("collector").build()
+    // .run());
+    // }
 
     @Test
     public void testMessageSelector() {
