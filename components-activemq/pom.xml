@@ -135,8 +135,6 @@
                         <include>**/*IT.java</include>
                     </includes>
                     <systemPropertyVariables>
-                        <ssl.debug>true</ssl.debug>
-                        <javax.net.debug>ssl,handshake,verbose</javax.net.debug>
                         <javax.net.ssl.trustStore>src/test/resources/client.ts</javax.net.ssl.trustStore>
                         <javax.net.ssl.trustStorePassword>password</javax.net.ssl.trustStorePassword>
                         <talend.component.junit.handler.state>static</talend.component.junit.handler.state>
