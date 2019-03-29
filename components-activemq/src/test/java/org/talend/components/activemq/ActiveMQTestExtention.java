@@ -25,7 +25,7 @@ public class ActiveMQTestExtention implements ExtensionContext.Store.CloseableRe
     private TestContext testContext = new TestContext();
 
     private static final GenericContainer ACTIVEMQ_CONTAINER = new GenericContainer(
-            new ImageFromDockerfile("webcenter/activemq:latest")
+            new ImageFromDockerfile().withFileFromClasspath("Dockerfile", "docker/Dockerfile")
                     .withFileFromPath("activemq.xml", Paths.get("src/test/resources/docker/activemq.xml"))
                     .withFileFromPath("broker.ks", Paths.get("src/test/resources/docker/broker.ks")))
                             .withExposedPorts(ACTIVEMQ_PORT)
