@@ -42,7 +42,7 @@ import static org.talend.components.activemq.MessageConst.MESSAGE_CONTENT;
 
 @Slf4j
 @Version(1)
-@Icon(value = Icon.IconType.CUSTOM, custom = "ActiveMQOutput")
+@Icon(value = Icon.IconType.ACTIVEMQ)
 @Processor(name = "Output")
 @Documentation("Main class for JMSOutput records processing")
 public class Output implements Serializable {
