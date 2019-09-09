@@ -78,7 +78,7 @@ public class CouchbaseOutput implements Serializable {
         if (configuration.isUseN1QLQuery()) {
             JsonObject namedParams = JsonObject.create();
             configuration.getQueryParams().stream().forEach(
-                    qp -> namedParams.put(qp.getQueryParameter(), record.getOptionalString(qp.getColumn()).orElse("")));
+                    qp -> namedParams.put(qp.getQueryParameterName(), record.getOptionalString(qp.getColumn()).orElse("")));
             final N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(configuration.getQuery(), namedParams));
             if (!queryResult.finalSuccess()) {
                 final String errors = queryResult.errors().stream()
