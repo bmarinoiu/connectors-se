@@ -12,11 +12,16 @@
  */
 package org.talend.components.couchbase.output;
 
+import com.couchbase.client.deps.io.netty.buffer.ByteBuf;
+import com.couchbase.client.deps.io.netty.buffer.Unpooled;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.document.BinaryDocument;
 import com.couchbase.client.java.document.JsonDocument;
 import com.couchbase.client.java.document.json.JsonArray;
 import com.couchbase.client.java.document.json.JsonObject;
+import lombok.extern.slf4j.Slf4j;
+import org.talend.components.couchbase.dataset.DocumentType;
 import org.talend.components.couchbase.service.CouchbaseService;
 import org.talend.components.couchbase.service.I18nMessage;
 import org.talend.sdk.component.api.component.Icon;
@@ -34,8 +39,6 @@ import javax.annotation.PreDestroy;
 import java.io.Serializable;
 import java.time.ZonedDateTime;
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Version(1)
 @Slf4j
@@ -70,13 +73,23 @@ public class CouchbaseOutput implements Serializable {
 
     @ElementListener
     public void onNext(@Input final Record defaultInput) {
-        bucket.upsert(toJsonDocument(idFieldName, defaultInput));
+        if (configuration.getDataSet().getDocumentType() == DocumentType.RAW) {
+            bucket.upsert(toRawDocument(idFieldName, defaultInput));
+        } else {
+            bucket.upsert(toJsonDocument(idFieldName, defaultInput));
+        }
     }
 
     @PreDestroy
     public void release() {
         service.closeBucket(bucket);
         service.closeConnection(configuration.getDataSet().getDatastore());
+    }
+
+    private BinaryDocument toRawDocument(String idFieldName, Record record) {
+        ByteBuf toWrite = Unpooled.copiedBuffer(record.getBytes("data"));
+        // ByteBuf toWrite = Unpooled.copiedBuffer("str", CharsetUtil.UTF_8);
+        return BinaryDocument.create(record.getString(idFieldName), toWrite);
     }
 
     private JsonDocument toJsonDocument(String idFieldName, Record record) {

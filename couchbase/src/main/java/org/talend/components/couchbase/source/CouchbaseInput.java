@@ -12,15 +12,22 @@
  */
 package org.talend.components.couchbase.source;
 
+import com.couchbase.client.deps.io.netty.util.ReferenceCountUtil;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.document.BinaryDocument;
 import com.couchbase.client.java.document.json.JsonArray;
 import com.couchbase.client.java.document.json.JsonObject;
 import com.couchbase.client.java.query.N1qlQuery;
 import com.couchbase.client.java.query.N1qlQueryResult;
 import com.couchbase.client.java.query.N1qlQueryRow;
+import com.couchbase.client.java.query.Select;
+import com.couchbase.client.java.query.Statement;
+import com.couchbase.client.java.query.dsl.path.AsPath;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.talend.components.couchbase.dataset.DocumentType;
 import org.talend.components.couchbase.service.CouchbaseService;
 import org.talend.components.couchbase.service.I18nMessage;
 import org.talend.sdk.component.api.configuration.Option;
@@ -34,11 +41,14 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.Serializable;
 import java.time.ZonedDateTime;
-import java.util.*;
-
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import static org.talend.sdk.component.api.record.Schema.Type.RECORD;
+import static org.talend.sdk.component.api.record.Schema.Type.STRING;
 
 @Slf4j
 @Documentation("This component reads data from Couchbase.")
@@ -80,21 +90,31 @@ public class CouchbaseInput implements Serializable {
 
         N1qlQueryResult n1qlQueryRows;
         if (configuration.isUseN1QLQuery()) {
+            /*
+             * should contain "meta().id as `_$$$_meta_id_$$$_`" field for non-json documents
+             */
             n1qlQueryRows = bucket.query(N1qlQuery.simple(configuration.getQuery()));
         } else {
-            n1qlQueryRows = bucket.query(N1qlQuery.simple("SELECT * FROM `" + bucket.name() + "`" + getLimit()));
+            Statement statement;
+            AsPath asPath = Select.select("meta().id as `_$$$_meta_id_$$$_`", "*").from(bucket.name());
+            if (!configuration.getLimit().isEmpty()) {
+                statement = asPath.limit(Integer.parseInt(configuration.getLimit().trim()));
+            } else {
+                statement = asPath;
+            }
+            n1qlQueryRows = bucket.query(statement);
         }
         checkErrors(n1qlQueryRows);
         index = n1qlQueryRows.rows();
     }
 
-    private String getLimit() {
-        if (configuration.getLimit().isEmpty()) {
-            return "";
-        } else {
-            return " LIMIT " + configuration.getLimit().trim();
-        }
-    }
+    // private String getLimit() {
+    // if (configuration.getLimit().isEmpty()) {
+    // return "";
+    // } else {
+    // return " LIMIT " + configuration.getLimit().trim();
+    // }
+    // }
 
     private void checkErrors(N1qlQueryResult n1qlQueryRows) {
         if (!n1qlQueryRows.errors().isEmpty()) {
@@ -109,6 +129,23 @@ public class CouchbaseInput implements Serializable {
             return null;
         } else {
             JsonObject jsonObject = index.next().value();
+
+            if (configuration.getDataSet().getDocumentType() == DocumentType.RAW) {
+                String id = jsonObject.getString("_$$$_meta_id_$$$_");
+                BinaryDocument doc = bucket.get(id, BinaryDocument.class);
+                byte[] data = new byte[doc.content().readableBytes()];
+                doc.content().readBytes(data);
+                ReferenceCountUtil.release(doc.content());
+
+                Schema schema = builderFactory.newSchemaBuilder(Schema.Type.RECORD)
+                        .withEntry(builderFactory.newEntryBuilder().withName("id").withType(STRING).build())
+                        .withEntry(builderFactory.newEntryBuilder().withName("content").withType(Schema.Type.BYTES).build())
+                        .build();
+                final Record.Builder recordBuilder = builderFactory.newRecordBuilder(schema);
+                recordBuilder.withString("id", id);
+                recordBuilder.withBytes("content", data);
+                return recordBuilder.build();
+            }
 
             if (!configuration.isUseN1QLQuery()) {
                 // unwrap JSON (we use SELECT * to retrieve all values. Result will be wrapped with bucket name)
