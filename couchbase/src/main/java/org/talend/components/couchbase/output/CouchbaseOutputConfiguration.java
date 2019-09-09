@@ -61,6 +61,6 @@ public class CouchbaseOutputConfiguration implements Serializable {
     @Option
     @Documentation("N1QL Query Parameters")
     @ActiveIf(target = "useN1QLQuery", value = "true")
-    private List<N1QLQueryParam> queryParams = Collections.EMPTY_LIST;
+    private List<N1QLQueryParameter> queryParams = Collections.EMPTY_LIST;
 
 }

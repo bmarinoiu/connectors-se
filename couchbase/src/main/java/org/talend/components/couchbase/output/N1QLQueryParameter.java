@@ -19,20 +19,24 @@ import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayouts;
 import org.talend.sdk.component.api.meta.Documentation;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 @GridLayouts({ @GridLayout({ @GridLayout.Row({ "queryParameter" }), @GridLayout.Row({ "column" }) }) })
 @Documentation("Couchbase input configuration")
 
-public class N1QLQueryParam implements Serializable {
+public class N1QLQueryParameter implements Serializable {
 
     @Option
     @Documentation("Query Parameter Name")
-    private String queryParameter;
+    private String queryParameterName;
 
     @Option
-    @Documentation("Column")
+    @Documentation("Column Mapping")
     private String column;
 
 }
