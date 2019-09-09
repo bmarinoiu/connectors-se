@@ -12,11 +12,14 @@
  */
 package org.talend.components.couchbase.output;
 
-import com.couchbase.client.java.Bucket;
-import com.couchbase.client.java.Cluster;
-import com.couchbase.client.java.document.JsonDocument;
-import com.couchbase.client.java.document.json.JsonArray;
-import com.couchbase.client.java.document.json.JsonObject;
+import java.io.Serializable;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
 import org.talend.components.couchbase.service.CouchbaseService;
 import org.talend.components.couchbase.service.I18nMessage;
 import org.talend.sdk.component.api.component.Icon;
@@ -29,11 +32,13 @@ import org.talend.sdk.component.api.processor.Processor;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import java.io.Serializable;
-import java.time.ZonedDateTime;
-import java.util.List;
+import com.couchbase.client.java.Bucket;
+import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.document.JsonDocument;
+import com.couchbase.client.java.document.json.JsonArray;
+import com.couchbase.client.java.document.json.JsonObject;
+import com.couchbase.client.java.query.N1qlQuery;
+import com.couchbase.client.java.query.N1qlQueryResult;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -69,8 +74,22 @@ public class CouchbaseOutput implements Serializable {
     }
 
     @ElementListener
-    public void onNext(@Input final Record defaultInput) {
-        bucket.upsert(toJsonDocument(idFieldName, defaultInput));
+    public void onNext(@Input final Record record) {
+        if (configuration.isUseN1QLQuery()) {
+            JsonObject namedParams = JsonObject.create();
+            configuration.getQueryParams().stream().forEach(
+                    qp -> namedParams.put(qp.getQueryParameter(), record.getOptionalString(qp.getColumn()).orElse("")));
+            final N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(configuration.getQuery(), namedParams));
+            if (!queryResult.finalSuccess()) {
+                final String errors = queryResult.errors().stream()
+                        .map(error -> String.format("[%d] %s", error.getInt("code"), error.getString("msg")))
+                        .collect(Collectors.joining("\n"));
+                log.error("N1QL failed: {}.", errors);
+                throw new RuntimeException(errors);
+            }
+        } else {
+            bucket.upsert(toJsonDocument(idFieldName, record));
+        }
     }
 
     @PreDestroy
