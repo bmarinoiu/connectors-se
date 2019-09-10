@@ -14,7 +14,9 @@ package org.talend.components.couchbase.output;
 
 import java.io.Serializable;
 import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -76,9 +78,9 @@ public class CouchbaseOutput implements Serializable {
     @ElementListener
     public void onNext(@Input final Record record) {
         if (configuration.isUseN1QLQuery()) {
-            JsonObject namedParams = JsonObject.create();
-            configuration.getQueryParams().stream().forEach(
-                    qp -> namedParams.put(qp.getQueryParameterName(), record.getOptionalString(qp.getColumn()).orElse("")));
+            Map<String, String> mappings = configuration.getQueryParams().stream()
+                    .collect(Collectors.toMap(N1QLQueryParameter::getColumn, N1QLQueryParameter::getQueryParameterName));
+            JsonObject namedParams = buildJsonObject(record, mappings);
             final N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(configuration.getQuery(), namedParams));
             if (!queryResult.finalSuccess()) {
                 final String errors = queryResult.errors().stream()
@@ -98,18 +100,12 @@ public class CouchbaseOutput implements Serializable {
         service.closeConnection(configuration.getDataSet().getDatastore());
     }
 
-    private JsonDocument toJsonDocument(String idFieldName, Record record) {
+    private JsonObject buildJsonObject(Record record, Map<String, String> mappings) {
         List<Schema.Entry> entries = record.getSchema().getEntries();
         JsonObject jsonObject = JsonObject.create();
         for (Schema.Entry entry : entries) {
             String entryName = entry.getName();
-
-            if (idFieldName.equals(entryName)) {
-                continue;
-            }
-
             Object value = null;
-
             switch (entry.getType()) {
             case INT:
                 value = record.getInt(entryName);
@@ -143,19 +139,34 @@ public class CouchbaseOutput implements Serializable {
             default:
                 throw new IllegalArgumentException("Unknown Type " + entry.getType());
             }
-
+            // set correct json property
+            String propertyName = entryName;
+            if (mappings.containsKey(entryName)) {
+                propertyName = mappings.get(entryName);
+            }
             if (value instanceof Float) {
-                jsonObject.put(entryName, Double.parseDouble(value.toString()));
+                jsonObject.put(propertyName, Double.parseDouble(value.toString()));
             } else if (value instanceof ZonedDateTime) {
-                jsonObject.put(entryName, value.toString());
+                jsonObject.put(propertyName, value.toString());
             } else if (value instanceof List) {
                 JsonArray jsonArray = JsonArray.from((List<?>) value);
-                jsonObject.put(entryName, jsonArray);
+                jsonObject.put(propertyName, jsonArray);
             } else {
-                jsonObject.put(entryName, value);
+                jsonObject.put(propertyName, value);
             }
         }
-        return JsonDocument.create(record.getString(idFieldName), jsonObject);
+        return jsonObject;
+    }
+
+    private JsonObject buildJsonObject(Record record) {
+        JsonObject content = buildJsonObject(record, Collections.EMPTY_MAP);
+        // cleanup id from json
+        return content.removeKey(idFieldName);
+    }
+
+    private JsonDocument toJsonDocument(String idFieldName, Record record) {
+        JsonObject content = buildJsonObject(record);
+        return JsonDocument.create(record.getString(idFieldName), content);
     }
 
     private Object createJsonFromString(String str) {
