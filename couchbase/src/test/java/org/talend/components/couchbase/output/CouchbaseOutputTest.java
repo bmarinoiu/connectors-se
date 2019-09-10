@@ -82,11 +82,13 @@ public class CouchbaseOutputTest extends CouchbaseUtilTest {
         executeJob();
     }
 
-    void executeJob() {
-        final String outputConfig = configurationByExample().forInstance(getOutputConfiguration()).configured().toQueryString();
+    void executeJob(String config) {
+        Job.components().component("Couchbase_Output", "Couchbase://Output?" + config).component("emitter", "test://emitter")
+                .connections().from("emitter").to("Couchbase_Output").build().run();
+    }
 
-        Job.components().component("Couchbase_Output", "Couchbase://Output?" + outputConfig)
-                .component("emitter", "test://emitter").connections().from("emitter").to("Couchbase_Output").build().run();
+    void executeJob() {
+        executeJob(configurationByExample().forInstance(getOutputConfiguration()).configured().toQueryString());
     }
 
     @Test
@@ -170,14 +172,8 @@ public class CouchbaseOutputTest extends CouchbaseUtilTest {
                 BUCKET_NAME);
         configuration.setQuery(qry);
         String cfg = configurationByExample().forInstance(configuration).configured().toQueryString();
-        System.err.println("[executeSimpleN1QLQueryWithParameters] config {}" + cfg);
         componentsHandler.setInputData(createRecordsForN1QL());
-        Job.components().component("Couchbase_Output", "Couchbase://Output?" + cfg) //
-                .component("emitter", "test://emitter") //
-                .connections() //
-                .from("emitter") //
-                .to("Couchbase_Output") //
-                .build().run();
+        executeJob(cfg);
         List<N1qlQueryRow> results = retrieveN1QLQueryParamDataFromDatabase("masterkey3");
         assertEquals(1, results.size());
         N1qlQueryRow result = results.get(0);
@@ -206,12 +202,7 @@ public class CouchbaseOutputTest extends CouchbaseUtilTest {
         configuration.setQueryParams(params);
         String cfg = configurationByExample().forInstance(configuration).configured().toQueryString();
         componentsHandler.setInputData(createRecordsForN1QL());
-        Job.components().component("Couchbase_Output", "Couchbase://Output?" + cfg) //
-                .component("emitter", "test://emitter") //
-                .connections() //
-                .from("emitter") //
-                .to("Couchbase_Output") //
-                .build().run();
+        executeJob(cfg);
         List<N1qlQueryRow> results = retrieveN1QLQueryParamDataFromDatabase("KEY_3");
         assertEquals(5, results.size());
         Stream.iterate(1, o -> o + 1).limit(5).forEach(idx -> {
