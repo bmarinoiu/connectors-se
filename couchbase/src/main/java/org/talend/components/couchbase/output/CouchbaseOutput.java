@@ -158,15 +158,18 @@ public class CouchbaseOutput implements Serializable {
         return jsonObject;
     }
 
-    private JsonObject buildJsonObject(Record record) {
-        JsonObject content = buildJsonObject(record, Collections.EMPTY_MAP);
-        // cleanup id from json
-        return content.removeKey(idFieldName);
+    /**
+     * Calls {@link #buildJsonObject(Record, Map)} and then removes the KEY(idFieldName) from it
+     * 
+     * @param record
+     * @return JsonObject
+     */
+    private JsonObject buildJsonObjectWithoutId(Record record) {
+        return buildJsonObject(record, Collections.emptyMap()).removeKey(idFieldName);
     }
 
     private JsonDocument toJsonDocument(String idFieldName, Record record) {
-        JsonObject content = buildJsonObject(record);
-        return JsonDocument.create(record.getString(idFieldName), content);
+        return JsonDocument.create(record.getString(idFieldName), buildJsonObjectWithoutId(record));
     }
 
     private Object createJsonFromString(String str) {
