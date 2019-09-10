@@ -52,7 +52,7 @@ public abstract class CouchbaseUtilTest implements Extension {
     public static final CouchbaseContainer COUCHBASE_CONTAINER;
 
     @Service
-    private RecordBuilderFactory recordBuilderFactory;
+    protected RecordBuilderFactory recordBuilderFactory;
 
     public static final String COUCHBASE_SERVER_DOCKER_IMAGE = "couchbase/server:6.5.0-beta";
 
