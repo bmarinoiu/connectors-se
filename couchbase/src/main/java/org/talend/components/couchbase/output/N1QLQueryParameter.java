@@ -26,7 +26,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@GridLayouts({ @GridLayout({ @GridLayout.Row({ "queryParameter" }), @GridLayout.Row({ "column" }) }) })
+@GridLayouts({ @GridLayout({ @GridLayout.Row({ "queryParameterName" }), @GridLayout.Row({ "column" }) }) })
 @Documentation("Couchbase input configuration")
 
 public class N1QLQueryParameter implements Serializable {
