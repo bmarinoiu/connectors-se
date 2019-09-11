@@ -41,6 +41,7 @@ import com.couchbase.client.java.document.json.JsonArray;
 import com.couchbase.client.java.document.json.JsonObject;
 import com.couchbase.client.java.query.N1qlQuery;
 import com.couchbase.client.java.query.N1qlQueryResult;
+import com.couchbase.client.java.subdoc.MutateInBuilder;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -90,7 +91,11 @@ public class CouchbaseOutput implements Serializable {
                 throw new RuntimeException(errors);
             }
         } else {
-            bucket.upsert(toJsonDocument(idFieldName, record));
+            if (configuration.isPartialUpdate()) {
+                updatePartiallyDocument(record);
+            } else {
+                bucket.upsert(toJsonDocument(idFieldName, record));
+            }
         }
     }
 
@@ -100,67 +105,75 @@ public class CouchbaseOutput implements Serializable {
         service.closeConnection(configuration.getDataSet().getDatastore());
     }
 
+    private void updatePartiallyDocument(Record record) {
+        final MutateInBuilder[] mutateBuilder = { bucket.mutateIn(record.getString(idFieldName)) };
+        record.getSchema().getEntries().stream().filter(e -> !idFieldName.equals(e.getName()))
+                .forEach(e -> mutateBuilder[0] = mutateBuilder[0].upsert(e.getName(), jsonValueFromRecordValue(e, record)));
+        mutateBuilder[0].execute();
+    }
+
+    private Object jsonValueFromRecordValue(Schema.Entry entry, Record record) {
+        String entryName = entry.getName();
+        Object value = null;
+        switch (entry.getType()) {
+        case INT:
+            value = record.getInt(entryName);
+            break;
+        case LONG:
+            value = record.getLong(entryName);
+            break;
+        case BYTES:
+            throw new IllegalArgumentException("BYTES is unsupported");
+        case FLOAT:
+            value = record.getFloat(entryName);
+            break;
+        case DOUBLE:
+            value = record.getDouble(entryName);
+            break;
+        case STRING:
+            value = createJsonFromString(record.getString(entryName));
+            break;
+        case BOOLEAN:
+            value = record.getBoolean(entryName);
+            break;
+        case ARRAY:
+            value = record.getArray(List.class, entryName);
+            break;
+        case DATETIME:
+            value = record.getDateTime(entryName);
+            break;
+        case RECORD:
+            value = record.getRecord(entryName);
+            break;
+        default:
+            throw new IllegalArgumentException("Unknown Type " + entry.getType());
+        }
+        if (value instanceof Float) {
+            return Double.parseDouble(value.toString());
+        }
+        if (value instanceof ZonedDateTime) {
+            return value.toString();
+        }
+        if (value instanceof List) {
+            return JsonArray.from((List<?>) value);
+        }
+        return value;
+    }
+
     private JsonObject buildJsonObject(Record record, Map<String, String> mappings) {
         List<Schema.Entry> entries = record.getSchema().getEntries();
         JsonObject jsonObject = JsonObject.create();
         for (Schema.Entry entry : entries) {
             String entryName = entry.getName();
-            Object value = null;
-            switch (entry.getType()) {
-            case INT:
-                value = record.getInt(entryName);
-                break;
-            case LONG:
-                value = record.getLong(entryName);
-                break;
-            case BYTES:
-                throw new IllegalArgumentException("BYTES is unsupported");
-            case FLOAT:
-                value = record.getFloat(entryName);
-                break;
-            case DOUBLE:
-                value = record.getDouble(entryName);
-                break;
-            case STRING:
-                value = createJsonFromString(record.getString(entryName));
-                break;
-            case BOOLEAN:
-                value = record.getBoolean(entryName);
-                break;
-            case ARRAY:
-                value = record.getArray(List.class, entryName);
-                break;
-            case DATETIME:
-                value = record.getDateTime(entryName);
-                break;
-            case RECORD:
-                value = record.getRecord(entryName);
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown Type " + entry.getType());
-            }
-            // set correct json property
-            String propertyName = entryName;
-            if (mappings.containsKey(entryName)) {
-                propertyName = mappings.get(entryName);
-            }
-            if (value instanceof Float) {
-                jsonObject.put(propertyName, Double.parseDouble(value.toString()));
-            } else if (value instanceof ZonedDateTime) {
-                jsonObject.put(propertyName, value.toString());
-            } else if (value instanceof List) {
-                JsonArray jsonArray = JsonArray.from((List<?>) value);
-                jsonObject.put(propertyName, jsonArray);
-            } else {
-                jsonObject.put(propertyName, value);
-            }
+            Object value = jsonValueFromRecordValue(entry, record);
+            jsonObject.put(mappings.containsKey(entryName) ? mappings.get(entryName) : entryName, value);
         }
         return jsonObject;
     }
 
     /**
      * Calls {@link #buildJsonObject(Record, Map)} and then removes the KEY(idFieldName) from it
-     * 
+     *
      * @param record
      * @return JsonObject
      */

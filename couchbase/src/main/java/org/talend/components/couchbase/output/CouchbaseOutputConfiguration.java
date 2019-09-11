@@ -30,8 +30,9 @@ import lombok.Data;
 
 @Version(2)
 @Data
-@GridLayouts({ @GridLayout({ @GridLayout.Row({ "dataSet" }), @GridLayout.Row({ "idFieldName" }), //
-        @GridLayout.Row({ "useN1QLQuery" }), //
+@GridLayouts({ @GridLayout({ //
+        @GridLayout.Row({ "dataSet" }), //
+        @GridLayout.Row({ "idFieldName", "partialUpdate" }), @GridLayout.Row({ "useN1QLQuery" }), //
         @GridLayout.Row({ "query" }), //
         @GridLayout.Row({ "queryParams" }), //
         }), @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "dataSet" }) }) })
@@ -50,6 +51,11 @@ public class CouchbaseOutputConfiguration implements Serializable {
     @Documentation("Field to use as ID")
     @ActiveIf(target = "useN1QLQuery", value = "false")
     private String idFieldName;
+
+    @Option
+    @Documentation("Do a partial update of document")
+    @ActiveIf(target = "useN1QLQuery", value = "false")
+    private boolean partialUpdate;
 
     @Option
     @TextArea
