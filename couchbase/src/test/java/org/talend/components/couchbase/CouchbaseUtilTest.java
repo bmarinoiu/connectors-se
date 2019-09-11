@@ -54,10 +54,9 @@ public abstract class CouchbaseUtilTest implements Extension {
     @Service
     protected RecordBuilderFactory recordBuilderFactory;
 
-    public static final String COUCHBASE_SERVER_DOCKER_IMAGE = "couchbase/server:6.5.0-beta";
-
     static {
-        COUCHBASE_CONTAINER = new CouchbaseContainer(COUCHBASE_SERVER_DOCKER_IMAGE)
+        final String couchbaseServerDockerImage = System.getProperty("couchbase.server.docker.image");
+        COUCHBASE_CONTAINER = new CouchbaseContainer(couchbaseServerDockerImage)
                 .withClusterAdmin(CLUSTER_USERNAME, CLUSTER_PASSWORD)
                 .withNewBucket(DefaultBucketSettings.builder().enableFlush(true).name(BUCKET_NAME).password(BUCKET_PASSWORD)
                         .quota(BUCKET_QUOTA).type(BucketType.COUCHBASE).build());
