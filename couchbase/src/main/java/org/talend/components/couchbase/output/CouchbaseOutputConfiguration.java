@@ -35,7 +35,7 @@ import lombok.Data;
         @GridLayout.Row({ "query" }), //
         @GridLayout.Row({ "queryParams" }), //
         }), @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "dataSet" }) }) })
-@Documentation("Couchbase input configuration")
+@Documentation("Couchbase output configuration")
 public class CouchbaseOutputConfiguration implements Serializable {
 
     @Option
