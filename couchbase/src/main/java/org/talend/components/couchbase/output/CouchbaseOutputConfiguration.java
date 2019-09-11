@@ -43,13 +43,13 @@ public class CouchbaseOutputConfiguration implements Serializable {
     private CouchbaseDataSet dataSet;
 
     @Option
+    @Documentation("Use N1QL query")
+    private boolean useN1QLQuery = false;
+
+    @Option
     @Documentation("Field to use as ID")
     @ActiveIf(target = "useN1QLQuery", value = "false")
     private String idFieldName;
-
-    @Option
-    @Documentation("Use N1QL query")
-    private boolean useN1QLQuery = false;
 
     @Option
     @TextArea
