@@ -18,6 +18,7 @@ import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.document.BinaryDocument;
 import com.couchbase.client.java.document.JsonDocument;
+import com.couchbase.client.java.document.StringDocument;
 import com.couchbase.client.java.document.json.JsonArray;
 import com.couchbase.client.java.document.json.JsonObject;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,8 @@ public class CouchbaseOutput implements Serializable {
 
     private final CouchbaseService service;
 
+    private static final String CONTENT_FIELD_NAME = "content";
+
     public CouchbaseOutput(@Option("configuration") final CouchbaseOutputConfiguration configuration,
             final CouchbaseService service, final I18nMessage i18n) {
         this.configuration = configuration;
@@ -73,8 +76,10 @@ public class CouchbaseOutput implements Serializable {
 
     @ElementListener
     public void onNext(@Input final Record defaultInput) {
-        if (configuration.getDataSet().getDocumentType() == DocumentType.RAW) {
-            bucket.upsert(toRawDocument(idFieldName, defaultInput));
+        if (configuration.getDataSet().getDocumentType() == DocumentType.BINARY) {
+            bucket.upsert(toBinaryDocument(idFieldName, defaultInput));
+        } else if (configuration.getDataSet().getDocumentType() == DocumentType.STRING) {
+            bucket.upsert(toStringDocument(idFieldName, defaultInput));
         } else {
             bucket.upsert(toJsonDocument(idFieldName, defaultInput));
         }
@@ -86,10 +91,14 @@ public class CouchbaseOutput implements Serializable {
         service.closeConnection(configuration.getDataSet().getDatastore());
     }
 
-    private BinaryDocument toRawDocument(String idFieldName, Record record) {
-        ByteBuf toWrite = Unpooled.copiedBuffer(record.getBytes("data"));
-        // ByteBuf toWrite = Unpooled.copiedBuffer("str", CharsetUtil.UTF_8);
+    private BinaryDocument toBinaryDocument(String idFieldName, Record record) {
+        ByteBuf toWrite = Unpooled.copiedBuffer(record.getBytes(CONTENT_FIELD_NAME));
         return BinaryDocument.create(record.getString(idFieldName), toWrite);
+    }
+
+    private StringDocument toStringDocument(String idFieldName, Record record) {
+        String content = record.getString(CONTENT_FIELD_NAME);
+        return StringDocument.create(record.getString(idFieldName), content);
     }
 
     private JsonDocument toJsonDocument(String idFieldName, Record record) {

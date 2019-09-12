@@ -16,13 +16,16 @@ import com.couchbase.client.deps.io.netty.util.ReferenceCountUtil;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.document.BinaryDocument;
+import com.couchbase.client.java.document.StringDocument;
 import com.couchbase.client.java.document.json.JsonArray;
 import com.couchbase.client.java.document.json.JsonObject;
+import com.couchbase.client.java.query.N1qlParams;
 import com.couchbase.client.java.query.N1qlQuery;
 import com.couchbase.client.java.query.N1qlQueryResult;
 import com.couchbase.client.java.query.N1qlQueryRow;
 import com.couchbase.client.java.query.Select;
 import com.couchbase.client.java.query.Statement;
+import com.couchbase.client.java.query.consistency.ScanConsistency;
 import com.couchbase.client.java.query.dsl.path.AsPath;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -47,9 +50,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import static org.talend.sdk.component.api.record.Schema.Type.RECORD;
-import static org.talend.sdk.component.api.record.Schema.Type.STRING;
-
 @Slf4j
 @Documentation("This component reads data from Couchbase.")
 public class CouchbaseInput implements Serializable {
@@ -72,12 +72,25 @@ public class CouchbaseInput implements Serializable {
 
     private Bucket bucket;
 
+    private static final String META_ID_FIELD = "_meta_id_";
+
+    private final Schema schemaBinaryDocument;
+
+    private final Schema schemaStringDocument;
+
     public CouchbaseInput(@Option("configuration") final CouchbaseInputConfiguration configuration,
             final CouchbaseService service, final RecordBuilderFactory builderFactory, final I18nMessage i18n) {
         this.configuration = configuration;
         this.service = service;
         this.builderFactory = builderFactory;
         this.i18n = i18n;
+
+        schemaBinaryDocument = builderFactory.newSchemaBuilder(Schema.Type.RECORD)
+                .withEntry(builderFactory.newEntryBuilder().withName("id").withType(Schema.Type.STRING).build())
+                .withEntry(builderFactory.newEntryBuilder().withName("content").withType(Schema.Type.BYTES).build()).build();
+        schemaStringDocument = builderFactory.newSchemaBuilder(Schema.Type.RECORD)
+                .withEntry(builderFactory.newEntryBuilder().withName("id").withType(Schema.Type.STRING).build())
+                .withEntry(builderFactory.newEntryBuilder().withName("content").withType(Schema.Type.STRING).build()).build();
     }
 
     @PostConstruct
@@ -91,18 +104,21 @@ public class CouchbaseInput implements Serializable {
         N1qlQueryResult n1qlQueryRows;
         if (configuration.isUseN1QLQuery()) {
             /*
-             * should contain "meta().id as `_$$$_meta_id_$$$_`" field for non-json documents
+             * should contain "meta().id as `_$$$_meta_id_$$$_`" field for non-json (binary) documents
              */
-            n1qlQueryRows = bucket.query(N1qlQuery.simple(configuration.getQuery()));
+            n1qlQueryRows = bucket.query(
+                    N1qlQuery.simple(configuration.getQuery(), N1qlParams.build().consistency(ScanConsistency.REQUEST_PLUS)));
         } else {
             Statement statement;
-            AsPath asPath = Select.select("meta().id as `_$$$_meta_id_$$$_`", "*").from(bucket.name());
+            AsPath asPath = Select.select("meta().id as `" + META_ID_FIELD + "`", "*").from("`" + bucket.name() + "`");
             if (!configuration.getLimit().isEmpty()) {
                 statement = asPath.limit(Integer.parseInt(configuration.getLimit().trim()));
             } else {
                 statement = asPath;
             }
-            n1qlQueryRows = bucket.query(statement);
+
+            n1qlQueryRows = bucket
+                    .query(N1qlQuery.simple(statement, N1qlParams.build().consistency(ScanConsistency.REQUEST_PLUS)));
         }
         checkErrors(n1qlQueryRows);
         index = n1qlQueryRows.rows();
@@ -130,38 +146,56 @@ public class CouchbaseInput implements Serializable {
         } else {
             JsonObject jsonObject = index.next().value();
 
-            if (configuration.getDataSet().getDocumentType() == DocumentType.RAW) {
-                String id = jsonObject.getString("_$$$_meta_id_$$$_");
-                BinaryDocument doc = bucket.get(id, BinaryDocument.class);
+            // read binary
+            if (configuration.getDataSet().getDocumentType() == DocumentType.BINARY) {
+                String id = jsonObject.getString(META_ID_FIELD);
+                BinaryDocument doc = null;
+                try {
+                    doc = bucket.get(id, BinaryDocument.class);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage());
+                    return null;
+                }
                 byte[] data = new byte[doc.content().readableBytes()];
                 doc.content().readBytes(data);
                 ReferenceCountUtil.release(doc.content());
 
-                Schema schema = builderFactory.newSchemaBuilder(Schema.Type.RECORD)
-                        .withEntry(builderFactory.newEntryBuilder().withName("id").withType(STRING).build())
-                        .withEntry(builderFactory.newEntryBuilder().withName("content").withType(Schema.Type.BYTES).build())
-                        .build();
-                final Record.Builder recordBuilder = builderFactory.newRecordBuilder(schema);
+                final Record.Builder recordBuilder = builderFactory.newRecordBuilder(schemaBinaryDocument);
                 recordBuilder.withString("id", id);
                 recordBuilder.withBytes("content", data);
                 return recordBuilder.build();
-            }
+            } else if (configuration.getDataSet().getDocumentType() == DocumentType.STRING) {
+                String id = jsonObject.getString(META_ID_FIELD);
+                StringDocument doc = null;
+                try {
+                    doc = bucket.get(id, StringDocument.class);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage());
+                    return null;
+                }
+                String data = doc.content();
 
-            if (!configuration.isUseN1QLQuery()) {
-                // unwrap JSON (we use SELECT * to retrieve all values. Result will be wrapped with bucket name)
-                jsonObject = (JsonObject) jsonObject.get(configuration.getDataSet().getBucket());
-            }
+                final Record.Builder recordBuilder = builderFactory.newRecordBuilder(schemaStringDocument);
+                recordBuilder.withString("id", id);
+                recordBuilder.withString("content", data);
+                return recordBuilder.build();
+            } else {
+                if (!configuration.isUseN1QLQuery()) {
+                    // unwrap JSON (we use SELECT * to retrieve all values. Result will be wrapped with bucket name)
+                    jsonObject = (JsonObject) jsonObject.get(configuration.getDataSet().getBucket());
+                }
 
-            if (columnsSet.isEmpty() && configuration.getDataSet().getSchema() != null
-                    && !configuration.getDataSet().getSchema().isEmpty()) {
-                columnsSet.addAll(configuration.getDataSet().getSchema());
-            }
+                if (columnsSet.isEmpty() && configuration.getDataSet().getSchema() != null
+                        && !configuration.getDataSet().getSchema().isEmpty()) {
+                    columnsSet.addAll(configuration.getDataSet().getSchema());
+                }
 
-            if (schema == null) {
-                schema = service.getSchema(jsonObject, columnsSet);
-            }
+                if (schema == null) {
+                    schema = service.getSchema(jsonObject, columnsSet);
+                }
 
-            return createRecord(schema, jsonObject);
+                return createRecord(schema, jsonObject);
+            }
         }
     }
 
@@ -196,7 +230,7 @@ public class CouchbaseInput implements Serializable {
         case ARRAY:
             Schema elementSchema = entry.getElementSchema();
             entryBuilder.withElementSchema(elementSchema);
-            if (elementSchema.getType() == RECORD) {
+            if (elementSchema.getType() == Schema.Type.RECORD) {
                 List<Record> recordList = new ArrayList<>();
                 // schema of the first element
                 Schema currentSchema = elementSchema.getEntries().get(0).getElementSchema();

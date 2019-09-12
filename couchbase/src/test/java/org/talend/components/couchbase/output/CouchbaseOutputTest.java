@@ -13,34 +13,32 @@
 package org.talend.components.couchbase.output;
 
 import com.couchbase.client.java.Bucket;
-import com.couchbase.client.java.Cluster;
-import com.couchbase.client.java.CouchbaseCluster;
 import com.couchbase.client.java.document.JsonDocument;
-import com.couchbase.client.java.env.CouchbaseEnvironment;
-import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;
-import com.couchbase.client.java.query.N1qlQuery;
-import com.couchbase.client.java.query.N1qlQueryResult;
-import org.junit.jupiter.api.BeforeEach;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.talend.components.couchbase.CouchbaseUtilTest;
+import org.talend.components.couchbase.TestData;
 import org.talend.components.couchbase.dataset.CouchbaseDataSet;
-import org.talend.components.couchbase.datastore.CouchbaseDataStore;
 import org.talend.sdk.component.api.record.Record;
+import org.talend.sdk.component.api.record.Schema;
+import org.talend.sdk.component.api.service.Service;
+import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import org.talend.sdk.component.junit.BaseComponentsHandler;
 import org.talend.sdk.component.junit5.Injected;
 import org.talend.sdk.component.junit5.WithComponents;
 import org.talend.sdk.component.runtime.manager.chain.Job;
+import org.talend.sdk.component.runtime.record.SchemaImpl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
 
+@Slf4j
 @WithComponents("org.talend.components.couchbase")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Testing of CouchbaseOutput component")
@@ -49,75 +47,102 @@ public class CouchbaseOutputTest extends CouchbaseUtilTest {
     @Injected
     private BaseComponentsHandler componentsHandler;
 
-    private List<Record> records;
+    @Service
+    private RecordBuilderFactory recordBuilderFactory;
+
+    private final String SIMPLE_OUTPUT_TEST_ID = "simpleOutputTest_";
 
     private List<JsonDocument> retrieveDataFromDatabase() {
-        CouchbaseEnvironment environment = new DefaultCouchbaseEnvironment.Builder().connectTimeout(DEFAULT_TIMEOUT_IN_SEC * 1000)
-                .build();
-        Cluster cluster = CouchbaseCluster.create(environment, COUCHBASE_CONTAINER.getContainerIpAddress());
-        Bucket bucket = cluster.openBucket(BUCKET_NAME, BUCKET_PASSWORD);
+        Bucket bucket = couchbaseCluster.openBucket(BUCKET_NAME, BUCKET_PASSWORD);
+        JsonDocument doc1 = bucket.get(SIMPLE_OUTPUT_TEST_ID + "1");
+        JsonDocument doc2 = bucket.get(SIMPLE_OUTPUT_TEST_ID + "2");
+        // N1qlQueryResult n1qlQueryResult = bucket.query(N1qlQuery
+        // .simple("SELECT META(" + BUCKET_NAME + ").id FROM " + BUCKET_NAME + " ORDER BY META(" + BUCKET_NAME + ").id"));
+        // List<JsonDocument> resultList = n1qlQueryResult.allRows().stream().map(index -> index.value().get("id"))
+        // .map(Object::toString).map(bucket::get).collect(Collectors.toList());
+        List<JsonDocument> resultList = new ArrayList<>();
+        resultList.add(doc1);
+        resultList.add(doc2);
 
-        bucket.bucketManager().createN1qlPrimaryIndex(true, false);
-
-        N1qlQueryResult n1qlQueryResult = bucket.query(N1qlQuery
-                .simple("SELECT META(" + BUCKET_NAME + ").id FROM " + BUCKET_NAME + " ORDER BY META(" + BUCKET_NAME + ").id"));
-        List<JsonDocument> resultList = n1qlQueryResult.allRows().stream().map(index -> index.value().get("id"))
-                .map(Object::toString).map(index -> bucket.get(index)).collect(Collectors.toList());
-
+        // bucket.bucketManager().dropN1qlPrimaryIndex(false, 20, TimeUnit.SECONDS);
+        // bucket.bucketManager().createN1qlPrimaryIndex(false, false, 20, TimeUnit.SECONDS);
         bucket.close();
-        cluster.disconnect();
-        environment.shutdown();
         return resultList;
     }
 
-    @BeforeEach
-    void createTestRecords() {
-        records = super.createRecords();
-        componentsHandler.setInputData(records);
-        executeJob();
-    }
-
-    void executeJob() {
+    private void executeJob() {
         final String outputConfig = configurationByExample().forInstance(getOutputConfiguration()).configured().toQueryString();
-
         Job.components().component("Couchbase_Output", "Couchbase://Output?" + outputConfig)
                 .component("emitter", "test://emitter").connections().from("emitter").to("Couchbase_Output").build().run();
     }
 
     @Test
-    @DisplayName("Check amount of total records from retrieved data")
-    void sizeOfRetrievedCouchbaseInsertTest() {
-        assertEquals(2, retrieveDataFromDatabase().size());
-    }
-
-    @Test
     @DisplayName("Check fields from retrieved data")
-    void checkDataCouchbaseInsertTest() {
+    void simpleOutputTest() {
+        log.info("test simpleOutputTest started");
+        List<Record> records = createRecords();
+        componentsHandler.setInputData(records);
+        executeJob();
+
         List<JsonDocument> resultList = retrieveDataFromDatabase();
         TestData testData = new TestData();
 
-        assertEquals(new Integer(testData.getCol2()), resultList.get(0).content().getInt("t_int_min"));
-        assertEquals(new Integer(testData.getCol3()), resultList.get(0).content().getInt("t_int_max"));
-        assertEquals(new Long(testData.getCol4()), resultList.get(0).content().getLong("t_long_min"));
-        assertEquals(new Long(testData.getCol5()), resultList.get(0).content().getLong("t_long_max"));
-        assertEquals(testData.getCol6(), resultList.get(0).content().getDouble("t_float_min"), 1E35);
-        assertEquals(testData.getCol7(), resultList.get(0).content().getDouble("t_float_max"), 1E35);
-        assertEquals(testData.getCol8(), resultList.get(0).content().getDouble("t_double_min"), 1);
-        assertEquals(testData.getCol9(), resultList.get(0).content().getDouble("t_double_max"), 1);
-        assertEquals(testData.isCol10(), resultList.get(0).content().getBoolean("t_boolean"));
-        assertEquals(testData.getCol11().toString(), resultList.get(0).content().getString("t_datetime"));
-        assertArrayEquals(testData.getCol12().toArray(), resultList.get(0).content().getArray("t_array").toList().toArray());
+        assertEquals(new Integer(testData.getColIntMin()), resultList.get(0).content().getInt("t_int_min"));
+        assertEquals(new Integer(testData.getColIntMax()), resultList.get(0).content().getInt("t_int_max"));
+        assertEquals(new Long(testData.getColLongMin()), resultList.get(0).content().getLong("t_long_min"));
+        assertEquals(new Long(testData.getColLongMax()), resultList.get(0).content().getLong("t_long_max"));
+        assertEquals(testData.getColFloatMin(), resultList.get(0).content().getNumber("t_float_min").floatValue());
+        assertEquals(testData.getColFloatMax(), resultList.get(0).content().getNumber("t_float_max").floatValue());
+        assertEquals(testData.getColDoubleMin(), resultList.get(0).content().getDouble("t_double_min"));
+        assertEquals(testData.getColDoubleMax(), resultList.get(0).content().getDouble("t_double_max"));
+        assertEquals(testData.isColBoolean(), resultList.get(0).content().getBoolean("t_boolean"));
+        assertEquals(testData.getColDateTime().toString(), resultList.get(0).content().getString("t_datetime"));
+        Assertions.assertArrayEquals(testData.getColList().toArray(),
+                resultList.get(0).content().getArray("t_array").toList().toArray());
 
         assertEquals(2, resultList.size());
+        log.info("test simpleOutputTest finished");
+    }
+
+    private List<Record> createRecords() {
+        TestData testData = new TestData();
+        List<Record> records = new ArrayList<>();
+        for (int i = 1; i <= 2; i++) {
+            records.add(createRecord(SIMPLE_OUTPUT_TEST_ID + i));
+        }
+        return records;
+    }
+
+    private Record createRecord(String id) {
+        TestData testData = new TestData();
+
+        final Schema.Entry.Builder entryBuilder = recordBuilderFactory.newEntryBuilder();
+        SchemaImpl arrayInnerSchema = new SchemaImpl();
+        arrayInnerSchema.setType(Schema.Type.STRING);
+
+        Record record = recordBuilderFactory.newRecordBuilder()
+                .withString(entryBuilder.withName("t_string").withType(Schema.Type.STRING).build(), id)
+                .withInt(entryBuilder.withName("t_int_min").withType(Schema.Type.INT).build(), testData.getColIntMin())
+                .withInt(entryBuilder.withName("t_int_max").withType(Schema.Type.INT).build(), testData.getColIntMax())
+                .withLong(entryBuilder.withName("t_long_min").withType(Schema.Type.LONG).build(), testData.getColLongMin())
+                .withLong(entryBuilder.withName("t_long_max").withType(Schema.Type.LONG).build(), testData.getColLongMax())
+                .withFloat(entryBuilder.withName("t_float_min").withType(Schema.Type.FLOAT).build(), testData.getColFloatMin())
+                .withFloat(entryBuilder.withName("t_float_max").withType(Schema.Type.FLOAT).build(), testData.getColFloatMax())
+                .withDouble(entryBuilder.withName("t_double_min").withType(Schema.Type.DOUBLE).build(),
+                        testData.getColDoubleMin())
+                .withDouble(entryBuilder.withName("t_double_max").withType(Schema.Type.DOUBLE).build(),
+                        testData.getColDoubleMax())
+                .withBoolean(entryBuilder.withName("t_boolean").withType(Schema.Type.BOOLEAN).build(), testData.isColBoolean())
+                .withDateTime(entryBuilder.withName("t_datetime").withType(Schema.Type.DATETIME).build(),
+                        testData.getColDateTime())
+                .withArray(
+                        entryBuilder.withName("t_array").withType(Schema.Type.ARRAY).withElementSchema(arrayInnerSchema).build(),
+                        testData.getColList())
+                .build();
+        return record;
     }
 
     private CouchbaseOutputConfiguration getOutputConfiguration() {
-        CouchbaseDataStore couchbaseDataStore = new CouchbaseDataStore();
-        couchbaseDataStore.setBootstrapNodes(COUCHBASE_CONTAINER.getContainerIpAddress());
-        couchbaseDataStore.setUsername(CLUSTER_USERNAME);
-        couchbaseDataStore.setPassword(CLUSTER_PASSWORD);
-        couchbaseDataStore.setConnectTimeout(DEFAULT_TIMEOUT_IN_SEC);
-
         CouchbaseDataSet couchbaseDataSet = new CouchbaseDataSet();
         couchbaseDataSet.setBucket(BUCKET_NAME);
         couchbaseDataSet.setDatastore(couchbaseDataStore);

@@ -52,5 +52,5 @@ public class CouchbaseDataSet implements Serializable {
     @Option
     @Required
     @Documentation("Document type")
-    private DocumentType documentType;
+    private DocumentType documentType = DocumentType.JSON;
 }

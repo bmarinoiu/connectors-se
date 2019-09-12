@@ -21,6 +21,8 @@ import com.couchbase.client.java.document.json.JsonObject;
 import com.couchbase.client.java.env.CouchbaseEnvironment;
 import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;
 import com.couchbase.client.java.error.InvalidPasswordException;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.talend.components.couchbase.dataset.CouchbaseDataSet;
@@ -44,11 +46,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import lombok.Data;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import static org.talend.sdk.component.api.record.Schema.Type.*;
+import static org.talend.sdk.component.api.record.Schema.Type.ARRAY;
+import static org.talend.sdk.component.api.record.Schema.Type.BOOLEAN;
+import static org.talend.sdk.component.api.record.Schema.Type.DATETIME;
+import static org.talend.sdk.component.api.record.Schema.Type.DOUBLE;
+import static org.talend.sdk.component.api.record.Schema.Type.FLOAT;
+import static org.talend.sdk.component.api.record.Schema.Type.INT;
+import static org.talend.sdk.component.api.record.Schema.Type.LONG;
+import static org.talend.sdk.component.api.record.Schema.Type.RECORD;
+import static org.talend.sdk.component.api.record.Schema.Type.STRING;
 
 @Version(1)
 @Slf4j

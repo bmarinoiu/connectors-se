@@ -14,5 +14,6 @@ package org.talend.components.couchbase.dataset;
 
 public enum DocumentType {
     JSON,
-    RAW
+    BINARY,
+    STRING
 }
