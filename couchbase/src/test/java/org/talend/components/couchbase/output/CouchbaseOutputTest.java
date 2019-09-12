@@ -164,7 +164,6 @@ public class CouchbaseOutputTest extends CouchbaseUtilTest {
         assertEquals(2, resultList.size());
         TestData testData = new TestData();
         Stream.iterate(0, o -> o + 1).limit(2).forEach(idx -> {
-            System.err.println(resultList.get(idx).content());
             // untouched properties
             assertEquals(new Integer(testData.getCol3()), resultList.get(idx).content().getInt("t_int_max"));
             assertEquals(new Long(testData.getCol4()), resultList.get(idx).content().getLong("t_long_min"));
