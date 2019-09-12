@@ -23,6 +23,8 @@ import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
+import org.talend.sdk.component.junit.BaseComponentsHandler;
+import org.talend.sdk.component.junit5.Injected;
 import org.talend.sdk.component.runtime.record.SchemaImpl;
 import org.testcontainers.couchbase.CouchbaseContainer;
 
@@ -53,6 +55,9 @@ public abstract class CouchbaseUtilTest implements Extension {
 
     @Service
     protected RecordBuilderFactory recordBuilderFactory;
+
+    @Injected
+    protected BaseComponentsHandler componentsHandler;
 
     static {
         final String couchbaseServerDockerImage = System.getProperty("couchbase.server.docker.image");

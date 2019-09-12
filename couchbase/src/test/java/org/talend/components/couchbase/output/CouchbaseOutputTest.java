@@ -27,8 +27,6 @@ import org.talend.components.couchbase.datastore.CouchbaseDataStore;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.api.record.Schema.Type;
-import org.talend.sdk.component.junit.BaseComponentsHandler;
-import org.talend.sdk.component.junit5.Injected;
 import org.talend.sdk.component.junit5.WithComponents;
 import org.talend.sdk.component.runtime.manager.chain.Job;
 
@@ -50,9 +48,6 @@ import static org.talend.sdk.component.junit.SimpleFactory.configurationByExampl
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Testing of CouchbaseOutput component")
 public class CouchbaseOutputTest extends CouchbaseUtilTest {
-
-    @Injected
-    private BaseComponentsHandler componentsHandler;
 
     private List<Record> records;
 
