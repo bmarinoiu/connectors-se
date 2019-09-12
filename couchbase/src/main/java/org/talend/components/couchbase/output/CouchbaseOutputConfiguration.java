@@ -28,7 +28,7 @@ import org.talend.sdk.component.api.meta.Documentation;
 
 import lombok.Data;
 
-@Version(2)
+@Version(1)
 @Data
 @GridLayouts({ @GridLayout({ @GridLayout.Row({ "dataSet" }), @GridLayout.Row({ "idFieldName" }), //
         @GridLayout.Row({ "useN1QLQuery" }), //
