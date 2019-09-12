@@ -144,13 +144,12 @@ public class CouchbaseOutput implements Serializable {
     }
 
     private JsonObject buildJsonObject(Record record, Map<String, String> mappings) {
-        List<Schema.Entry> entries = record.getSchema().getEntries();
         JsonObject jsonObject = JsonObject.create();
-        for (Schema.Entry entry : entries) {
-            String entryName = entry.getName();
+        record.getSchema().getEntries().stream().forEach(entry -> {
+            String property = mappings.containsKey(entry.getName()) ? mappings.get(entry.getName()) : entry.getName();
             Object value = jsonValueFromRecordValue(entry, record);
-            jsonObject.put(mappings.containsKey(entryName) ? mappings.get(entryName) : entryName, value);
-        }
+            jsonObject.put(property, value);
+        });
         return jsonObject;
     }
 
