@@ -56,16 +56,9 @@ public class CouchbaseOutputTest extends CouchbaseUtilTest {
         Bucket bucket = couchbaseCluster.openBucket(BUCKET_NAME, BUCKET_PASSWORD);
         JsonDocument doc1 = bucket.get(SIMPLE_OUTPUT_TEST_ID + "1");
         JsonDocument doc2 = bucket.get(SIMPLE_OUTPUT_TEST_ID + "2");
-        // N1qlQueryResult n1qlQueryResult = bucket.query(N1qlQuery
-        // .simple("SELECT META(" + BUCKET_NAME + ").id FROM " + BUCKET_NAME + " ORDER BY META(" + BUCKET_NAME + ").id"));
-        // List<JsonDocument> resultList = n1qlQueryResult.allRows().stream().map(index -> index.value().get("id"))
-        // .map(Object::toString).map(bucket::get).collect(Collectors.toList());
         List<JsonDocument> resultList = new ArrayList<>();
         resultList.add(doc1);
         resultList.add(doc2);
-
-        // bucket.bucketManager().dropN1qlPrimaryIndex(false, 20, TimeUnit.SECONDS);
-        // bucket.bucketManager().createN1qlPrimaryIndex(false, false, 20, TimeUnit.SECONDS);
         bucket.close();
         return resultList;
     }
@@ -105,7 +98,6 @@ public class CouchbaseOutputTest extends CouchbaseUtilTest {
     }
 
     private List<Record> createRecords() {
-        TestData testData = new TestData();
         List<Record> records = new ArrayList<>();
         for (int i = 1; i <= 2; i++) {
             records.add(createRecord(SIMPLE_OUTPUT_TEST_ID + i));
