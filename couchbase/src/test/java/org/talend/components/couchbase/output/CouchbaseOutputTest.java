@@ -130,7 +130,6 @@ public class CouchbaseOutputTest extends CouchbaseUtilTest {
 
         CouchbaseOutputConfiguration configuration = new CouchbaseOutputConfiguration();
         configuration.setIdFieldName("t_string");
-
         configuration.setDataSet(couchbaseDataSet);
         return configuration;
     }
