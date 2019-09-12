@@ -17,7 +17,6 @@ import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -39,8 +38,6 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.document.JsonDocument;
 import com.couchbase.client.java.document.json.JsonArray;
 import com.couchbase.client.java.document.json.JsonObject;
-import com.couchbase.client.java.query.N1qlQuery;
-import com.couchbase.client.java.query.N1qlQueryResult;
 import com.couchbase.client.java.subdoc.MutateInBuilder;
 
 import lombok.extern.slf4j.Slf4j;
@@ -78,24 +75,10 @@ public class CouchbaseOutput implements Serializable {
 
     @ElementListener
     public void onNext(@Input final Record record) {
-        if (configuration.isUseN1QLQuery()) {
-            Map<String, String> mappings = configuration.getQueryParams().stream()
-                    .collect(Collectors.toMap(N1QLQueryParameter::getColumn, N1QLQueryParameter::getQueryParameterName));
-            JsonObject namedParams = buildJsonObject(record, mappings);
-            final N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(configuration.getQuery(), namedParams));
-            if (!queryResult.finalSuccess()) {
-                final String errors = queryResult.errors().stream()
-                        .map(error -> String.format("[%d] %s", error.getInt("code"), error.getString("msg")))
-                        .collect(Collectors.joining("\n"));
-                log.error("N1QL failed: {}.", errors);
-                throw new RuntimeException(errors);
-            }
+        if (configuration.isPartialUpdate()) {
+            updatePartiallyDocument(record);
         } else {
-            if (configuration.isPartialUpdate()) {
-                updatePartiallyDocument(record);
-            } else {
-                bucket.upsert(toJsonDocument(idFieldName, record));
-            }
+            bucket.upsert(toJsonDocument(idFieldName, record));
         }
     }
 
