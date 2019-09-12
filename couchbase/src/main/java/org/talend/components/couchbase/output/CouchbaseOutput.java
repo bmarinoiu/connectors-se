@@ -13,7 +13,6 @@
 package org.talend.components.couchbase.output;
 
 import java.io.Serializable;
-import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -97,56 +96,36 @@ public class CouchbaseOutput implements Serializable {
 
     private Object jsonValueFromRecordValue(Schema.Entry entry, Record record) {
         String entryName = entry.getName();
-        Object value = null;
         switch (entry.getType()) {
         case INT:
-            value = record.getInt(entryName);
-            break;
+            return record.getInt(entryName);
         case LONG:
-            value = record.getLong(entryName);
-            break;
+            return record.getLong(entryName);
         case BYTES:
             throw new IllegalArgumentException("BYTES is unsupported");
         case FLOAT:
-            value = record.getFloat(entryName);
-            break;
+            return Double.parseDouble(String.valueOf(record.getFloat(entryName)));
         case DOUBLE:
-            value = record.getDouble(entryName);
-            break;
+            return record.getDouble(entryName);
         case STRING:
-            value = createJsonFromString(record.getString(entryName));
-            break;
+            return createJsonFromString(record.getString(entryName));
         case BOOLEAN:
-            value = record.getBoolean(entryName);
-            break;
+            return record.getBoolean(entryName);
         case ARRAY:
-            value = record.getArray(List.class, entryName);
-            break;
+            return JsonArray.from((List<?>) record.getArray(List.class, entryName));
         case DATETIME:
-            value = record.getDateTime(entryName);
-            break;
+            return record.getDateTime(entryName).toString();
         case RECORD:
-            value = record.getRecord(entryName);
-            break;
+            return record.getRecord(entryName);
         default:
             throw new IllegalArgumentException("Unknown Type " + entry.getType());
         }
-        if (value instanceof Float) {
-            return Double.parseDouble(value.toString());
-        }
-        if (value instanceof ZonedDateTime) {
-            return value.toString();
-        }
-        if (value instanceof List) {
-            return JsonArray.from((List<?>) value);
-        }
-        return value;
     }
 
     private JsonObject buildJsonObject(Record record, Map<String, String> mappings) {
         JsonObject jsonObject = JsonObject.create();
         record.getSchema().getEntries().stream().forEach(entry -> {
-            String property = mappings.containsKey(entry.getName()) ? mappings.get(entry.getName()) : entry.getName();
+            String property = mappings.getOrDefault(entry.getName(), entry.getName());
             Object value = jsonValueFromRecordValue(entry, record);
             jsonObject.put(property, value);
         });
