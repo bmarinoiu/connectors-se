@@ -13,7 +13,6 @@
 package org.talend.components.couchbase.output;
 
 import java.io.Serializable;
-import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -100,67 +99,47 @@ public class CouchbaseOutput implements Serializable {
         service.closeConnection(configuration.getDataSet().getDatastore());
     }
 
-    private JsonObject buildJsonObject(Record record, Map<String, String> mappings) {
-        List<Schema.Entry> entries = record.getSchema().getEntries();
-        JsonObject jsonObject = JsonObject.create();
-        for (Schema.Entry entry : entries) {
-            String entryName = entry.getName();
-            Object value = null;
-            switch (entry.getType()) {
-            case INT:
-                value = record.getInt(entryName);
-                break;
-            case LONG:
-                value = record.getLong(entryName);
-                break;
-            case BYTES:
-                throw new IllegalArgumentException("BYTES is unsupported");
-            case FLOAT:
-                value = record.getFloat(entryName);
-                break;
-            case DOUBLE:
-                value = record.getDouble(entryName);
-                break;
-            case STRING:
-                value = createJsonFromString(record.getString(entryName));
-                break;
-            case BOOLEAN:
-                value = record.getBoolean(entryName);
-                break;
-            case ARRAY:
-                value = record.getArray(List.class, entryName);
-                break;
-            case DATETIME:
-                value = record.getDateTime(entryName);
-                break;
-            case RECORD:
-                value = record.getRecord(entryName);
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown Type " + entry.getType());
-            }
-            // set correct json property
-            String propertyName = entryName;
-            if (mappings.containsKey(entryName)) {
-                propertyName = mappings.get(entryName);
-            }
-            if (value instanceof Float) {
-                jsonObject.put(propertyName, Double.parseDouble(value.toString()));
-            } else if (value instanceof ZonedDateTime) {
-                jsonObject.put(propertyName, value.toString());
-            } else if (value instanceof List) {
-                JsonArray jsonArray = JsonArray.from((List<?>) value);
-                jsonObject.put(propertyName, jsonArray);
-            } else {
-                jsonObject.put(propertyName, value);
-            }
+    private Object jsonValueFromRecordValue(Schema.Entry entry, Record record) {
+        String entryName = entry.getName();
+        switch (entry.getType()) {
+        case INT:
+            return record.getInt(entryName);
+        case LONG:
+            return record.getLong(entryName);
+        case BYTES:
+            throw new IllegalArgumentException("BYTES is unsupported");
+        case FLOAT:
+            return Double.parseDouble(String.valueOf(record.getFloat(entryName)));
+        case DOUBLE:
+            return record.getDouble(entryName);
+        case STRING:
+            return createJsonFromString(record.getString(entryName));
+        case BOOLEAN:
+            return record.getBoolean(entryName);
+        case ARRAY:
+            return JsonArray.from((List<?>) record.getArray(List.class, entryName));
+        case DATETIME:
+            return record.getDateTime(entryName).toString();
+        case RECORD:
+            return record.getRecord(entryName);
+        default:
+            throw new IllegalArgumentException("Unknown Type " + entry.getType());
         }
+    }
+
+    private JsonObject buildJsonObject(Record record, Map<String, String> mappings) {
+        JsonObject jsonObject = JsonObject.create();
+        record.getSchema().getEntries().stream().forEach(entry -> {
+            String property = mappings.getOrDefault(entry.getName(), entry.getName());
+            Object value = jsonValueFromRecordValue(entry, record);
+            jsonObject.put(property, value);
+        });
         return jsonObject;
     }
 
     /**
      * Calls {@link #buildJsonObject(Record, Map)} and then removes the KEY(idFieldName) from it
-     * 
+     *
      * @param record
      * @return JsonObject
      */
