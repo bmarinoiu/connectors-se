@@ -52,7 +52,7 @@ public abstract class CouchbaseUtilTest implements Extension {
     public static final CouchbaseContainer COUCHBASE_CONTAINER;
 
     @Service
-    private RecordBuilderFactory recordBuilderFactory;
+    protected RecordBuilderFactory recordBuilderFactory;
 
     static {
         COUCHBASE_CONTAINER = new CouchbaseContainer().withClusterAdmin(CLUSTER_USERNAME, CLUSTER_PASSWORD)

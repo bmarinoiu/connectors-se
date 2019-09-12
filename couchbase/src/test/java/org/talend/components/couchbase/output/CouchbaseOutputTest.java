@@ -12,8 +12,10 @@
  */
 package org.talend.components.couchbase.output;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +25,7 @@ import org.talend.components.couchbase.CouchbaseUtilTest;
 import org.talend.components.couchbase.dataset.CouchbaseDataSet;
 import org.talend.components.couchbase.datastore.CouchbaseDataStore;
 import org.talend.sdk.component.api.record.Record;
+import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.junit.BaseComponentsHandler;
 import org.talend.sdk.component.junit5.Injected;
 import org.talend.sdk.component.junit5.WithComponents;
@@ -39,6 +42,7 @@ import com.couchbase.client.java.query.N1qlQueryResult;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
 
 @WithComponents("org.talend.components.couchbase")
@@ -126,7 +130,65 @@ public class CouchbaseOutputTest extends CouchbaseUtilTest {
 
         CouchbaseOutputConfiguration configuration = new CouchbaseOutputConfiguration();
         configuration.setIdFieldName("t_string");
+
         configuration.setDataSet(couchbaseDataSet);
         return configuration;
+    }
+
+    public List<Record> createPartialUpdateRecords() {
+        final Schema.Entry.Builder entryBuilder = recordBuilderFactory.newEntryBuilder();
+        List<Record> records = new ArrayList<>();
+        Record record1 = recordBuilderFactory.newRecordBuilder()
+                .withString(entryBuilder.withName("t_string").withType(Schema.Type.STRING).build(), "id1")
+                .withInt(entryBuilder.withName("t_int_min").withType(Schema.Type.INT).build(), 1971)
+                .withString(entryBuilder.withName("extra_content").withType(Schema.Type.STRING).build(), "path new").build();
+        Record record2 = recordBuilderFactory.newRecordBuilder()
+                .withString(entryBuilder.withName("t_string").withType(Schema.Type.STRING).build(), "id2")
+                .withBoolean(entryBuilder.withName("t_boolean").withType(Schema.Type.BOOLEAN).build(), Boolean.FALSE)
+                .withString(entryBuilder.withName("extra_content2").withType(Schema.Type.STRING).build(), "path zap").build();
+        records.add(record1);
+        records.add(record2);
+
+        return records;
+    }
+
+    @Test
+    @DisplayName("Document partial update")
+    void partialUpdate() {
+        CouchbaseOutputConfiguration config = getOutputConfiguration();
+        config.setPartialUpdate(true);
+        String cfg = configurationByExample().forInstance(config).configured().toQueryString();
+        componentsHandler.setInputData(createPartialUpdateRecords());
+        executeJob(cfg);
+        //
+        List<JsonDocument> resultList = retrieveDataFromDatabase();
+        assertEquals(2, resultList.size());
+        TestData testData = new TestData();
+        Stream.iterate(0, o -> o + 1).limit(2).forEach(idx -> {
+            System.err.println(resultList.get(idx).content());
+            // untouched properties
+            assertEquals(new Integer(testData.getCol3()), resultList.get(idx).content().getInt("t_int_max"));
+            assertEquals(new Long(testData.getCol4()), resultList.get(idx).content().getLong("t_long_min"));
+            assertEquals(new Long(testData.getCol5()), resultList.get(idx).content().getLong("t_long_max"));
+            assertEquals(testData.getCol6(), resultList.get(idx).content().getDouble("t_float_min"), 1E35);
+            assertEquals(testData.getCol7(), resultList.get(idx).content().getDouble("t_float_max"), 1E35);
+            assertEquals(testData.getCol8(), resultList.get(idx).content().getDouble("t_double_min"), 1);
+            assertEquals(testData.getCol9(), resultList.get(idx).content().getDouble("t_double_max"), 1);
+            assertEquals(testData.getCol11().toString(), resultList.get(idx).content().getString("t_datetime"));
+            assertArrayEquals(testData.getCol12().toArray(),
+                    resultList.get(idx).content().getArray("t_array").toList().toArray());
+            // upserted proterties
+            if (idx == 0) {
+                assertEquals(1971, resultList.get(idx).content().getInt("t_int_min"));
+                assertEquals(testData.isCol10(), resultList.get(idx).content().getBoolean("t_boolean"));
+                assertEquals("path new", resultList.get(idx).content().getString("extra_content"));
+                assertNull(resultList.get(idx).content().getString("extra_content2"));
+            } else {
+                assertEquals(new Integer(testData.getCol2()), resultList.get(idx).content().getInt("t_int_min"));
+                assertEquals(Boolean.FALSE, resultList.get(idx).content().getBoolean("t_boolean"));
+                assertEquals("path zap", resultList.get(idx).content().getString("extra_content2"));
+                assertNull(resultList.get(idx).content().getString("extra_content"));
+            }
+        });
     }
 }
