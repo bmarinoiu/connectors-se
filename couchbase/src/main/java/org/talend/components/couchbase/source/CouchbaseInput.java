@@ -26,6 +26,7 @@ import com.couchbase.client.java.query.N1qlQueryRow;
 import com.couchbase.client.java.query.Select;
 import com.couchbase.client.java.query.Statement;
 import com.couchbase.client.java.query.consistency.ScanConsistency;
+import com.couchbase.client.java.query.dsl.Expression;
 import com.couchbase.client.java.query.dsl.path.AsPath;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -104,13 +105,13 @@ public class CouchbaseInput implements Serializable {
         N1qlQueryResult n1qlQueryRows;
         if (configuration.isUseN1QLQuery()) {
             /*
-             * should contain "meta().id as `_$$$_meta_id_$$$_`" field for non-json (binary) documents
+             * should contain "meta().id as `_meta_id_`" field for non-json (binary) documents
              */
             n1qlQueryRows = bucket.query(
                     N1qlQuery.simple(configuration.getQuery(), N1qlParams.build().consistency(ScanConsistency.REQUEST_PLUS)));
         } else {
             Statement statement;
-            AsPath asPath = Select.select("meta().id as `" + META_ID_FIELD + "`", "*").from("`" + bucket.name() + "`");
+            AsPath asPath = Select.select("meta().id as " + Expression.i(META_ID_FIELD), "*").from(Expression.i(bucket.name()));
             if (!configuration.getLimit().isEmpty()) {
                 statement = asPath.limit(Integer.parseInt(configuration.getLimit().trim()));
             } else {
