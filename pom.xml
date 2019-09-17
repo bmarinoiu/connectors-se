@@ -34,13 +34,14 @@
 
     <modules>
         <module>jdbc</module>
-        <module>salesforce</module>
-        <module>couchbase</module>
-        <module>azure</module>
+        <!--<module>salesforce</module> -->
+        <!--<module>couchbase</module> -->
+        <!--<module>azure</module> -->
         <!-- disable eventhubs build before all ready
         <module>azure-eventhubs</module> 
         -->
-        <module>azure-dls-gen2</module>
+       <!-- <module>azure-dls-gen2</module> -->
+        <module>slack</module>
         <module>marketo</module>
     </modules>
 
