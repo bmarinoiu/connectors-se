@@ -15,7 +15,7 @@ package org.talend.components.adlsgen2.datastore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class AdlsGen2ConnectionTest {
 
