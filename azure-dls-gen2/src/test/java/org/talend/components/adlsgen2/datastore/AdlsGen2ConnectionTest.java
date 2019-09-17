@@ -20,9 +20,13 @@ import static org.junit.jupiter.api.Assertions.*;
 class AdlsGen2ConnectionTest {
 
     public static final String CHINA_STORAGE_ACCOUNT = "datalakegen2";
+
     public static final String CHINA_ENDPOINT_SUFFIX = "core.chinacloudapi.cn";
+
     public static final String CHINA_API_URL = "https://datalakegen2.core.chinacloudapi.cn";
+
     public static final String UNDXGEN2_STORAGE_ACCOUNT = "undxgen2";
+
     public static final String UNDXGEN2_API_URL = "https://undxgen2.dfs.core.windows.net";
 
     private AdlsGen2Connection connection;
